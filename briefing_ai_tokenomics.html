@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI tokenomics across the whole stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#0A0D14; --surf:#121826; --surf2:#18202F; --line:#263044; --text:#EEF2F8; --muted:#8C98AF; --dim:#5B677E;
+  --on-acc:#0A0D14; --mix:100%; --glow:.16; --shadow:0 30px 80px rgba(0,0,0,.6);
+  --amber:#FFB547;
+  --l1:#F472B6; --l2:#E879F9; --l3:#C084FC; --l4:#A78BFA; --l5:#818CF8; --l6:#60A5FA; --l7:#38BDF8;
+  --l8:#22D3EE; --l9:#2DD4BF; --l10:#4ADE80; --l11:#FACC15; --l12:#FB923C; --l13:#F87171; --lx:#94A3B8;
+  --c: var(--amber);
+  --f-head:"Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--f-body);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;overflow:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button{font:inherit;color:inherit}
+img,svg{max-width:100%}
+:focus-visible{outline:2px solid color-mix(in oklab,var(--c) var(--mix),var(--text));outline-offset:3px;border-radius:8px}
+
+/* background glow follows current slide colour */
+.glow{position:fixed;inset:0;pointer-events:none;z-index:0;transition:background .6s ease}
+.glow{background:
+  radial-gradient(900px 700px at 85% -10%, color-mix(in srgb,var(--c) calc(var(--glow)*100%),transparent), transparent 70%),
+  radial-gradient(700px 600px at -5% 105%, color-mix(in srgb,var(--c) calc(var(--glow)*45%),transparent), transparent 70%)}
+
+/* app shell */
+.app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:16px;padding:22px clamp(18px,5vw,96px) 8px;font-family:var(--f-mono);font-size:14px;font-weight:700}
+.topbar .dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none}
+.topbar .section{color:var(--acc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .brand{margin-left:auto;color:var(--dim);font-size:12px;white-space:nowrap}
+.topbar .pagenum{color:var(--muted);white-space:nowrap}
+.icon-btn{background:var(--surf2);border:1.5px solid var(--line);border-radius:999px;width:36px;height:36px;display:grid;place-items:center;cursor:pointer;font-size:15px}
+main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.navbar{display:flex;align-items:center;gap:12px;padding:12px clamp(18px,5vw,96px) 18px}
+.navbar .spacer{flex:1}
+.progress{height:6px;background:var(--line);flex:none}
+.progress > i{display:block;height:100%;background:var(--c);transition:width .4s ease,background .4s}
+@media (max-width:640px){ .topbar .brand{display:none} }
+
+/* accent helpers */
+*{--acc:color-mix(in oklab,var(--c) var(--mix),var(--text))}
+.acc{color:var(--acc)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 22px;border-radius:999px;background:var(--surf2);border:1.5px solid var(--line);font-weight:600;font-size:16px;cursor:pointer;text-decoration:none;color:var(--text);white-space:nowrap;transition:transform .12s ease,background .2s}
+.btn:hover{background:color-mix(in srgb,var(--c) 14%,var(--surf2))}
+.btn:active{transform:translateY(1px)}
+.btn.solid{background:var(--c);border-color:var(--c);color:var(--on-acc);font-weight:700}
+.btn.solid:hover{background:color-mix(in srgb,var(--c) 85%,white)}
+.btn.outline{background:transparent;border-color:var(--c);color:var(--acc)}
+.btn.big{min-height:64px;padding:0 30px;font-size:19px}
+.btn.sm{min-height:38px;padding:0 16px;font-size:14px}
+.btn.round{width:48px;padding:0;font-family:var(--f-mono);font-size:20px}
+.btn[disabled]{opacity:.35;pointer-events:none}
+
+/* slide */
+.slide{max-width:1720px;margin:0 auto;padding:18px clamp(18px,5vw,96px) 28px}
+.anim-next{animation:inR .45s cubic-bezier(.2,.7,.2,1)}
+.anim-prev{animation:inL .45s cubic-bezier(.2,.7,.2,1)}
+.anim-up{animation:inU .45s cubic-bezier(.2,.7,.2,1)}
+.anim-fade{animation:fade .25s ease-out}
+@keyframes inR{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:none}}
+@keyframes inL{from{opacity:0;transform:translateX(-60px)}to{opacity:1;transform:none}}
+@keyframes inU{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.anim-next,.anim-prev,.anim-up,.anim-fade{animation:none}.glow,.progress>i{transition:none}}
+
+.kicker{font-family:var(--f-mono);font-weight:700;font-size:17px;color:var(--acc);margin:0 0 10px}
+h1,h2,h3{font-family:var(--f-head);margin:0}
+.title{font-size:clamp(30px,3.6vw,58px);font-weight:700;line-height:1.06;letter-spacing:-.02em;max-width:24ch;text-wrap:balance}
+.title.wide{max-width:none}
+.sub{color:var(--muted);font-size:clamp(17px,1.5vw,22px);margin:12px 0 0;max-width:70ch}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 40px;margin-bottom:28px}
+.layer-head{position:relative}
+.ghost{position:absolute;right:0;top:-40px;font-family:var(--f-head);font-weight:700;font-size:clamp(140px,18vw,320px);line-height:1;color:var(--c);opacity:.07;letter-spacing:-.04em;pointer-events:none;z-index:-1}
+
+/* grid */
+.g{display:grid;gap:20px}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.main-side{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.wide-side{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}
+.stack{display:grid;gap:20px;align-content:start}
+@media (max-width:1100px){.c4,.c5{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:960px){.c2,.c3,.main-side,.wide-side{grid-template-columns:1fr}}
+@media (max-width:560px){.c4,.c5{grid-template-columns:1fr}}
+
+/* card */
+.card{position:relative;background:var(--surf);border:1.5px solid var(--line);border-radius:22px;padding:26px 28px 26px 34px;overflow:hidden;display:flex;flex-direction:column}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--c)}
+.card .tag{font-family:var(--f-mono);font-weight:700;font-size:14px;color:var(--acc);margin-bottom:14px}
+.card .stat{font-family:var(--f-mono);font-weight:700;font-size:clamp(36px,3.4vw,54px);line-height:1.05;color:var(--acc)}
+.card .stat.s{font-size:clamp(28px,2.4vw,40px)}
+.card .stat-label{color:var(--muted);font-size:15px;margin:8px 0 18px}
+.card h3{font-size:clamp(20px,1.6vw,26px);font-weight:600;line-height:1.18;margin-bottom:10px}
+.card h3.s{font-size:20px}
+.card p{color:var(--muted);margin:0;font-size:16px}
+.card p.s{font-size:15px}
+.card .cta{margin-top:auto;padding-top:20px}
+.card.click{cursor:pointer;transition:border-color .2s,transform .15s}
+.card.click:hover{border-color:var(--c)}
+.mono{font-family:var(--f-mono)}
+.small{font-size:13px;color:var(--dim)}
+.muted{color:var(--muted)}
+
+/* levers */
+.levers{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:22px}
+.levers b{font-family:var(--f-mono);font-size:14px;color:var(--acc);margin-right:8px}
+.chip{border:1.5px solid var(--c);border-radius:999px;padding:7px 16px;font-size:14px;font-weight:500;background:var(--surf)}
+
+/* bars */
+.hbar{display:grid;grid-template-columns:var(--lw,180px) 1fr;align-items:center;gap:14px;margin:10px 0}
+.hbar .lbl{font-family:var(--f-mono);font-size:14px;color:var(--muted)}
+.hbar > span:last-child{min-width:0}
+.hbar .track{display:flex;width:100%;align-items:center;gap:12px;min-width:0}
+.hbar .fill{height:24px;border-radius:6px;background:var(--c);flex:none}
+.hbar .val{font-family:var(--f-mono);font-size:15px;font-weight:700;white-space:nowrap}
+.hr{height:1px;background:var(--line);margin:22px 0}
+.scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* toggle */
+.seg{display:inline-flex;flex-wrap:wrap;padding:4px;gap:2px;background:var(--surf2);border:1.5px solid var(--line);border-radius:28px}
+.seg button{border:0;background:transparent;border-radius:24px;min-height:44px;padding:0 20px;font-size:15px;font-weight:500;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--c);color:var(--on-acc);font-weight:700}
+
+/* app panel */
+.panel{background:var(--surf);border:1.5px solid var(--line);border-radius:24px;overflow:hidden}
+.panel .bar{display:flex;align-items:center;gap:8px;padding:0 20px;height:50px;background:var(--surf2);font-family:var(--f-mono);font-size:14px;color:var(--muted)}
+.panel .bar i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.panel .body{padding:28px}
+.metric{background:var(--surf2);border-radius:18px;padding:22px 24px}
+.metric .k{font-family:var(--f-mono);font-size:13px;font-weight:700;color:var(--muted)}
+.metric .v{font-family:var(--f-mono);font-size:clamp(38px,4vw,60px);font-weight:700;line-height:1.1;margin:10px 0 8px}
+.metric .d{font-size:15px;color:var(--muted)}
+.insight{border:1.5px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 9%,transparent);border-radius:16px;padding:20px 22px;margin-top:24px}
+.insight .k{font-family:var(--f-mono);font-size:13px;font-weight:700;color:var(--acc);margin-bottom:8px}
+.insight p{margin:0;font-size:18px}
+
+/* modal */
+.scrim{position:fixed;inset:0;z-index:50;background:rgba(5,8,14,.55);display:grid;place-items:center;padding:20px;animation:fade .2s ease-out}
+.scrim[hidden]{display:none}
+.modal{--c:var(--amber);position:relative;width:min(1100px,100%);max-height:min(88vh,900px);overflow:auto;background:var(--surf);border:2px solid color-mix(in srgb,var(--c) 60%,transparent);border-radius:28px;box-shadow:var(--shadow);padding:44px 48px 40px;animation:pop .25s cubic-bezier(.2,.7,.2,1)}
+.modal::before{content:"";position:absolute;inset:0 0 auto;height:6px;background:var(--c)}
+@keyframes pop{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.modal,.scrim{animation:none}}
+.modal .tag{font-family:var(--f-mono);font-weight:700;color:var(--acc);font-size:15px;margin-bottom:10px}
+.modal h2{font-size:clamp(26px,2.6vw,40px);line-height:1.1;letter-spacing:-.01em;max-width:28ch;margin-bottom:26px}
+.modal .close{position:absolute;right:24px;top:24px;width:44px;height:44px;border-radius:50%;background:var(--surf2);border:1.5px solid var(--line);cursor:pointer;font-size:18px}
+.modal ul{list-style:none;padding:0;margin:0;display:grid;gap:14px}
+.modal li{position:relative;padding-left:26px;font-size:clamp(16px,1.3vw,20px)}
+.modal li::before{content:"";position:absolute;left:0;top:.6em;width:8px;height:8px;border-radius:2px;background:var(--c)}
+.modal .foot{margin-top:28px}
+@media (max-width:640px){.modal{padding:36px 22px 28px}}
+.drow{display:grid;grid-template-columns:200px 1fr;gap:20px;padding:16px 20px;border-radius:12px}
+.drow:nth-child(odd){background:var(--surf2)}
+.drow b{font-family:var(--f-mono);color:var(--acc);font-size:15px}
+@media (max-width:640px){.drow{grid-template-columns:1fr;gap:6px}}
+
+/* tooltip */
+.tip{position:fixed;z-index:40;width:min(400px,90vw);background:var(--surf);border:2px solid color-mix(in srgb,var(--c) 60%,transparent);border-radius:20px;box-shadow:var(--shadow);padding:22px 24px;pointer-events:none;animation:fade .15s ease-out}
+.tip[hidden]{display:none}
+.tip .tag{font-family:var(--f-mono);font-weight:700;color:var(--acc);font-size:14px}
+.tip h4{font-family:var(--f-head);font-size:26px;margin:6px 0 10px}
+.tip p{margin:0;color:var(--muted);font-size:15px}
+
+/* specific: cover stack */
+.cover{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px;align-items:center;min-height:calc(100vh - 220px)}
+.cover h1{font-size:clamp(64px,9.5vw,160px);line-height:.95;letter-spacing:-.04em;font-weight:700;margin:6px 0 28px}
+.cover .lede{font-size:clamp(19px,1.8vw,28px);color:var(--muted);max-width:30ch;margin:0 0 36px}
+.mini-stack{display:grid;gap:10px}
+.mini-stack button{--i:0;display:flex;align-items:center;gap:16px;height:44px;border-radius:10px;border:1.5px solid color-mix(in srgb,var(--c) 55%,transparent);background:color-mix(in srgb,var(--c) 12%,transparent);margin-left:calc(var(--i)*7px);margin-right:calc(var(--i)*7px);padding:0 18px;font-size:17px;font-weight:500;cursor:pointer;text-align:left}
+.mini-stack button:hover{background:color-mix(in srgb,var(--c) 22%,transparent)}
+.mini-stack .n{font-family:var(--f-mono);font-weight:700;color:var(--acc);font-size:15px;width:24px}
+@media (max-width:960px){.cover{grid-template-columns:1fr;min-height:0}}
+
+/* thesis bars */
+.swing{display:grid;gap:30px;margin-top:10px}
+.swing button{all:unset;cursor:pointer;display:block;border-radius:14px;padding:6px 4px}
+.swing button:focus-visible{outline:2px solid var(--acc);outline-offset:4px}
+.swing .row-h{display:flex;justify-content:space-between;gap:16px;align-items:baseline}
+.swing h3{font-size:clamp(20px,1.8vw,28px);font-weight:600}
+.swing .note{color:var(--muted);font-size:16px;margin:4px 0 12px}
+.swing .track{position:relative;height:28px;background:var(--surf2);border-radius:14px}
+.swing .fill{position:absolute;top:0;bottom:0;border-radius:14px;background:var(--c)}
+.swing .val{position:absolute;top:50%;transform:translate(14px,-50%);font-family:var(--f-mono);font-weight:700;font-size:clamp(20px,2vw,30px);color:var(--acc);white-space:nowrap}
+.axis{position:relative;height:30px;margin-top:6px}
+.axis span{position:absolute;transform:translateX(-50%);font-family:var(--f-mono);font-size:13px;color:var(--dim);padding-top:14px}
+.axis span::before{content:"";position:absolute;left:50%;top:0;width:1px;height:10px;background:var(--dim)}
+.quote{border-left:4px solid var(--c);padding-left:24px;font-size:clamp(18px,1.6vw,24px);max-width:38ch}
+
+/* equation */
+.eq{display:flex;flex-wrap:wrap;align-items:center;gap:14px 14px}
+.eq .op{font-family:var(--f-mono);font-size:40px;font-weight:300;color:var(--muted)}
+.term{border:2px solid color-mix(in srgb,var(--c) 70%,transparent);background:color-mix(in srgb,var(--c) 10%,transparent);border-radius:18px;padding:18px 22px;text-align:left;cursor:pointer;min-width:200px}
+.term:hover{background:color-mix(in srgb,var(--c) 18%,transparent)}
+.term .t{display:block;font-family:var(--f-mono);font-size:clamp(17px,1.5vw,22px);font-weight:700}
+.term .s{display:block;font-family:var(--f-mono);font-size:14px;color:var(--acc);margin-top:10px}
+.fraction{height:3px;background:var(--amber);margin:22px 0;border-radius:2px}
+.selfhost{border-left:4px solid var(--l10);padding-left:20px;font-family:var(--f-mono);font-size:17px}
+
+/* hub */
+.hub{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:48px}
+@media (max-width:1100px){.hub{grid-template-columns:1fr}}
+.bands{display:grid;gap:7px}
+.band{--i:0;display:grid;grid-template-columns:44px minmax(0,1.2fr) minmax(0,1fr) auto;align-items:center;gap:14px;min-height:52px;border-radius:12px;border:1.5px solid color-mix(in srgb,var(--c) 50%,transparent);background:color-mix(in srgb,var(--c) 10%,transparent);margin-left:calc(var(--i)*5px);margin-right:calc(var(--i)*5px);padding:6px 18px 6px 22px;position:relative;overflow:hidden;cursor:pointer;text-align:left}
+.band::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--c)}
+.band:hover{background:color-mix(in srgb,var(--c) 20%,transparent)}
+.band .n{font-family:var(--f-mono);font-weight:700;color:var(--acc)}
+.band .nm{font-family:var(--f-head);font-weight:600;font-size:19px}
+.band .d{color:var(--muted);font-size:15px}
+.band .s{font-family:var(--f-mono);font-size:14px;color:var(--acc);text-align:right}
+@media (max-width:760px){.band{grid-template-columns:34px 1fr;margin-left:0;margin-right:0}.band .d,.band .s{grid-column:2;text-align:left}}
+.edge{font-family:var(--f-mono);font-size:13px;font-weight:700;color:var(--dim);margin:6px 0}
+.jumps{display:grid;gap:12px}
+.jumps .btn{justify-content:space-between;border-radius:14px;min-height:56px;border-color:var(--c)}
+
+/* misc charts */
+.bars30{display:flex;align-items:flex-end;gap:4px;height:270px}
+.bars30 i{flex:1;max-width:14px;border-radius:3px 3px 0 0;background:var(--c);position:relative}
+.bars30 i::after{content:"";position:absolute;left:0;right:0;bottom:0;height:9px;background:var(--text);opacity:.85;border-radius:2px}
+.ui-mini{background:var(--surf2);border-radius:14px;padding:16px;height:270px;display:flex;flex-direction:column;gap:12px}
+.bubble{height:30px;border-radius:10px;background:var(--line)}
+.bubble.me{align-self:flex-end;background:color-mix(in srgb,var(--c) 60%,transparent)}
+.fld{height:30px;border-radius:8px;background:var(--bg);border:1.5px solid var(--line)}
+.fld-l{width:80px;height:10px;border-radius:3px;background:var(--dim)}
+.jv{display:flex;align-items:flex-end;gap:16px;height:170px;border-bottom:1px solid var(--line);padding:0 6px}
+.jv div{display:flex;align-items:flex-end;gap:6px;flex:1}
+.jv i{flex:1;border-radius:4px}
+.node{background:var(--surf2);border:1.5px solid var(--c);border-radius:14px;padding:12px 18px}
+.node b{display:block;font-family:var(--f-head);font-size:19px}
+.node span{font-family:var(--f-mono);font-size:13px;color:var(--acc)}
+.mscale{position:relative;height:250px;min-width:880px;margin:0 20px}
+.mscale .line{position:absolute;left:0;right:0;top:120px;height:6px;border-radius:3px;background:var(--line)}
+.mscale .tick{position:absolute;top:116px;width:2px;height:16px;background:var(--dim)}
+.mscale .tl{position:absolute;top:140px;transform:translateX(-50%);font-family:var(--f-mono);font-size:13px;color:var(--dim)}
+.mscale .mk{position:absolute;top:114px;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:var(--c);border:3px solid var(--surf)}
+.mscale .ml{position:absolute;width:170px;margin-left:-85px;text-align:center;font-family:var(--f-mono);font-size:13px;color:var(--acc);line-height:1.3}
+.mscale .stem{position:absolute;width:1.5px;margin-left:-.75px;background:var(--c);opacity:.6}
+.gpu{cursor:help;padding:24px}
+.gpu::before{display:none}
+.chipi{width:52px;height:52px;border-radius:10px;border:1.5px solid var(--c);background:color-mix(in srgb,var(--c) 15%,transparent);display:grid;place-items:center;flex:none}
+.chipi i{width:22px;height:22px;border-radius:4px;background:var(--c);opacity:.75}
+.meter{height:12px;border-radius:6px;background:var(--surf2);overflow:hidden;margin:8px 0 6px}
+.meter i{display:block;height:100%;border-radius:6px}
+.stackbar{display:flex;gap:4px;height:64px}
+.stackbar i{border-radius:8px}
+.gauge{display:flex;gap:6px;height:80px}
+.gauge i{flex:1;border-radius:5px;background:var(--surf2)}
+.formula{font-family:var(--f-mono);font-weight:700;font-size:clamp(15px,1.4vw,21px);line-height:1.6}
+.col{border:1.5px solid color-mix(in srgb,var(--c) 55%,transparent);background:var(--surf);border-radius:22px;padding:26px 28px}
+.col .tag{font-family:var(--f-mono);font-weight:700;font-size:14px;color:var(--acc)}
+.col h3{font-size:26px;margin:6px 0 18px}
+.blist{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.blist li{position:relative;padding-left:24px;font-size:16px}
+.blist li::before{content:"";position:absolute;left:0;top:.55em;width:8px;height:8px;border-radius:2px;background:var(--c)}
+table{border-collapse:separate;border-spacing:0 4px;width:100%}
+th{font-family:var(--f-mono);font-size:12px;font-weight:700;color:var(--muted);text-align:left;padding:10px 14px;background:var(--surf2)}
+th:first-child{border-radius:8px 0 0 8px} th:last-child{border-radius:0 8px 8px 0}
+td{padding:9px 14px;font-size:14px;background:var(--surf);vertical-align:top}
+tr.link{cursor:pointer}
+tr.link:hover td{background:color-mix(in srgb,var(--c) 10%,var(--surf))}
+tr.link td:first-child{border-left:4px solid var(--c);border-radius:8px 0 0 8px}
+tr.link td:last-child{border-radius:0 8px 8px 0}
+.dash{display:grid;grid-template-columns:220px minmax(0,1fr)}
+.dash nav{background:color-mix(in srgb,var(--bg) 50%,transparent);padding:20px 12px;display:grid;gap:6px;align-content:start}
+.dash nav span{padding:10px 18px;border-radius:10px;color:var(--muted);font-size:15px}
+.dash nav span.on{background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--acc);font-weight:600}
+@media (max-width:900px){.dash{grid-template-columns:1fr}.dash nav{display:none}}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+@media (max-width:1300px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surf2);border-radius:14px;padding:16px 18px}
+.kpi .k{font-family:var(--f-mono);font-size:12px;font-weight:700;color:var(--muted)}
+.kpi .v{font-family:var(--f-mono);font-size:32px;font-weight:700;color:var(--acc)}
+.kpi .d{font-size:13px;color:var(--dim)}
+.log td{font-family:var(--f-mono);font-size:13px;white-space:nowrap}
+.close-hero{font-size:clamp(54px,8vw,124px);line-height:1;letter-spacing:-.04em;font-weight:700;margin:12px 0 30px}
+.sources{columns:2 320px;column-gap:40px;padding:0;margin:0;list-style:none}
+.sources li{break-inside:avoid;padding:6px 0;font-size:15px}
+.cav{display:grid;grid-template-columns:72px 1fr;gap:16px;background:var(--surf);border:1.5px solid var(--line);border-radius:16px;padding:18px 22px;margin-bottom:12px}
+.cav b{font-family:var(--f-mono);color:var(--amber)}
+.split{display:grid;grid-template-columns:var(--cols);gap:28px}
+@media (max-width:960px){.split{grid-template-columns:1fr}}
+@media (max-width:560px){.lvl:not(.key){display:none}}
+
+/* slow glow on interactive elements */
+.btn,.term,.band,.mini-stack button,.card.click,.gpu,.seg,.chip,.swing .fill{--glowc:color-mix(in srgb,var(--c) 55%,#ffffff)}
+@keyframes breathe{
+  0%,100%{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--glowc) 18%,transparent),0 0 0 0 transparent}
+  50%{box-shadow:0 0 0 2px var(--glowc),0 0 18px 3px color-mix(in srgb,var(--glowc) 75%,transparent)}}
+@keyframes breatheF{0%,100%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 2px var(--glowc)) drop-shadow(0 0 12px color-mix(in srgb,var(--glowc) 80%,transparent))}}
+.btn:not([disabled]),.term,.band,.mini-stack button,.card.click,.gpu,.seg,.chip{animation:breathe 2.8s ease-in-out infinite}
+.swing .fill{animation:breatheF 2.8s ease-in-out infinite}
+.btn:not([disabled]):hover,.term:hover,.band:hover,.mini-stack button:hover,.card.click:hover,.gpu:hover,.chip:hover,.seg:hover{animation:none;box-shadow:0 0 0 2px var(--glowc),0 0 24px 4px color-mix(in srgb,var(--glowc) 70%,transparent)}
+@media (prefers-reduced-motion:reduce){
+  .btn:not([disabled]),.term,.band,.mini-stack button,.card.click,.gpu,.seg,.chip,.swing .fill{animation:none;box-shadow:0 0 0 1.5px var(--glowc),0 0 10px 1px color-mix(in srgb,var(--glowc) 45%,transparent)}
+  .swing .fill{box-shadow:none;filter:drop-shadow(0 0 2px var(--glowc))}}
+.modal.narrow{width:min(780px,100%)}
+.about-p{font-size:clamp(17px,1.5vw,21px);margin:0;line-height:1.5}
+#aboutBtn svg{display:block}
+.navbar .btn:not([disabled]),.navbar .btn:not([disabled]):hover{animation:none;box-shadow:none}
+.li{margin-left:auto;display:inline-block;width:1.45em;height:1.45em;flex:none;border-radius:3px;line-height:0;transition:transform .15s,box-shadow .2s}
+.li img{display:block;width:100%;height:100%}
+.li.gh + .li{margin-left:-6px}
+.li:hover{transform:translateY(-1px);box-shadow:0 0 0 2px rgba(255,255,255,.25),0 6px 18px rgba(0,0,0,.45)}
+.chip{cursor:help}
+
+/* hover descriptions */
+.hint{position:fixed;z-index:45;max-width:min(320px,86vw);background:#1E2738;color:var(--text);border:1.5px solid color-mix(in srgb,var(--c) 55%,transparent);border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.4;box-shadow:0 14px 40px rgba(0,0,0,.55);pointer-events:none;animation:fade .15s ease-out}
+.hint[hidden]{display:none}
+.hint b{display:block;font-family:var(--f-mono);font-size:12px;color:var(--acc);margin-bottom:3px}
+.gloss{border-bottom:1.5px dotted color-mix(in srgb,var(--c) 75%,transparent);cursor:help}
+.gloss:hover,.gloss:focus-visible{background:color-mix(in srgb,var(--c) 14%,transparent);border-radius:3px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="glow" aria-hidden="true"></div>
+<div class="app">
+  <header class="topbar">
+    <span class="dot" aria-hidden="true"></span>
+    <span class="section" id="section"></span>
+    <a class="li gh" id="ghLink" href="https://github.com/2digitsleft" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile (opens in a new window)"><img src="data:image/png;base64,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" alt=""></a>
+    <a class="li" id="liLink" href="https://www.linkedin.com/in/pruessmann/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn profile (opens in a new window)"><img src="data:image/png;base64,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" width="34" height="34" alt=""></a>
+    <span class="brand">AI tokenomics · Front end → metal</span>
+    <span class="pagenum" id="pagenum" aria-live="polite"></span>
+  </header>
+  <main id="stage" tabindex="-1"></main>
+  <nav class="navbar" aria-label="Slide navigation">
+    <button class="btn" id="hubBtn">◫ Stack map</button>
+    <button class="btn round" id="aboutBtn" aria-label="About this slide" style="font-family:var(--f-head);font-weight:700;font-size:22px">?</button>
+    <button class="btn" id="restartBtn">↺ Start over</button>
+    <span class="spacer"></span>
+    <button class="btn round" id="prevBtn" aria-label="Previous slide">←</button>
+    <button class="btn solid" id="nextBtn">Next</button>
+  </nav>
+  <div class="progress" aria-hidden="true"><i id="prog"></i></div>
+</div>
+<div class="scrim" id="scrim" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" id="modal"></div></div>
+<div class="tip" id="tip" hidden role="tooltip"></div>
+<div class="hint" id="hint" hidden role="tooltip"></div>
+
+<script>
+(() => {
+const L = n => `var(--l${n})`;
+const A = 'var(--amber)';
+const esc = s => s;
+
+/* ---------- building blocks ---------- */
+const card = o => `<div class="card${o.go?' click':''}" style="--c:${o.c}" ${o.go?`data-go="${o.go}" role="button" tabindex="0"`:''}>
+  ${o.tag?`<div class="tag">${o.tag}</div>`:''}
+  ${o.stat?`<div class="stat${o.ss?' s':''}">${o.stat}</div>`:''}
+  ${o.sl?`<div class="stat-label">${o.sl}</div>`:''}
+  ${o.title?`<h3 class="${o.ts?'s':''}">${o.title}</h3>`:''}
+  ${o.body?`<p class="${o.bs?'s':''}">${o.body}</p>`:''}
+  ${o.html||''}
+  ${o.ov?`<div class="cta"><button class="btn outline sm" data-ov="${o.ov}">${o.cta||'Deep dive ↗'}</button></div>`:''}
+  ${o.ctaGo?`<div class="cta"><button class="btn outline sm" data-go="${o.ctaGo}">${o.cta}</button></div>`:''}
+</div>`;
+const levers = (c, items, extra='') => `<div class="levers" style="--c:${c}"><b>Levers</b>${items.map(t=>`<span class="chip" tabindex="0">${t}</span>`).join('')}${extra}</div>`;
+const lhead = (n, title) => `<div class="head layer-head"><h1 class="title wide">${title}</h1><span class="ghost" aria-hidden="true">${String(n).padStart(2,'0')}</span></div>`;
+const hbar = (label, v, max, txt, o={}) => `<div class="hbar" style="--lw:${o.lw||'180px'};${o.c?`--c:${o.c}`:''}"><span class="lbl">${label}</span><span class="track"><span class="fill" style="width:calc((100% - 150px) * ${Math.max(v/max,0.015)});${o.op?`opacity:${o.op}`:''}"></span><span class="val">${txt}</span></span></div>`;
+const seg = (group, opts, cur) => `<div class="seg" role="group">${opts.map(([v,l])=>`<button data-set="${group}:${v}" aria-pressed="${v===cur}">${l}</button>`).join('')}</div>`;
+const panel = (title, body) => `<div class="panel"><div class="bar"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i><span style="margin-left:10px">${title}</span></div><div class="body">${body}</div></div>`;
+const blist = (items, c) => `<ul class="blist" style="--c:${c}">${items.map(i=>`<li>${i}</li>`).join('')}</ul>`;
+
+/* ---------- state ---------- */
+const state = { L5:'upfront', L9:'arch', effort:'medium', util:'idle' };
+
+/* ---------- slides ---------- */
+const LAYERS = ['Front end / UX','Application & business model','Orchestration / agent loop','Context & memory','Prompt layer','Tool layer','Gateway / routing','Provider API pricing','Model architecture & reasoning','Serving engines','Hardware','Datacenter & energy','On-prem vs cloud API'];
+
+const S = [];
+const add = (id, section, c, render) => S.push({ id, section, c, render });
+
+add('cover','Briefing · November 2026',A, () => `
+<div class="cover">
+  <div>
+    <p class="kicker">AI tokenomics across the whole stack</p>
+    <h1>The bill isn’t the price.</h1>
+    <p class="lede">What actually determines tokens, cost per token and cost per successful task — from the front end down to the metal.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:16px">
+      <button class="btn solid big" data-go="thesis">Start the briefing</button>
+      <button class="btn big" data-go="stack-map">Jump to the stack map</button>
+    </div>
+  </div>
+  <div>
+    <div class="edge">↑ Front end</div>
+    <div class="mini-stack">${LAYERS.map((n,i)=>`<button style="--c:${L(i+1)};--i:${i}" data-go="layer-${i+1}"><span class="n">${String(i+1).padStart(2,'0')}</span>${n}</button>`).join('')}</div>
+    <div class="edge" style="margin-left:90px">↓ Metal</div>
+  </div>
+</div>`);
+
+add('thesis','The thesis',A, () => {
+  const lg = v => Math.log10(v)/2*100;
+  const rows = [['Agent loops, reasoning effort, context growth','Same task, different token volume','5–100×',5,100,L(3),'layer-3'],
+    ['GPU utilisation on identical H100s','$0.21 → $15.25 per M output tokens','up to 36×',2.5,36.3,L(10),'utilisation-explorer'],
+    ['Vendor list-price differences','What procurement usually negotiates','2–5×',2,5,L(8),'layer-8']];
+  return `<div class="head"><div><p class="kicker">Where cost actually swings</p><h1 class="title">Volume and utilisation dwarf vendor price differences.</h1></div>
+  <p class="quote">Treat cost per successful task — not price per million tokens — as the unit of account at every layer.</p></div>
+  <p class="muted" style="font-size:19px;margin:0 0 20px">Swing in cost for the same task (log scale). Select a bar to see the layer that causes it.</p>
+  <div class="swing">${rows.map(([t,n,v,lo,hi,c,go])=>`<button style="--c:${c}" data-go="${go}"><span class="row-h"><h3>${t}</h3><span class="mono acc" style="font-size:14px;font-weight:700">Explore</span></span><p class="note">${n}</p>
+    <span class="track" style="display:block;margin-right:140px"><span class="fill" style="left:${lg(lo)}%;width:${lg(hi)-lg(lo)}%"></span><span class="val" style="left:${lg(hi)}%">${v}</span></span></button>`).join('')}
+  </div>
+  <div class="axis" style="margin-right:140px">${[1,2,5,10,20,50,100].map(v=>`<span style="left:${lg(v)}%">${v}×</span>`).join('')}</div>`;
+});
+
+add('tldr','TL;DR',A, () => `<div class="head"><div><p class="kicker">Three things to remember</p><h1 class="title wide">If you only take away three slides, take these.</h1></div></div>
+<div class="g c3">
+${card({c:L(3),tag:'T-01',stat:'4× · 15×',sl:'tokens of a chat interaction for agents · multi-agent systems',title:'Volume beats rate.',body:'“Max” reasoning effort burned ~7× the output tokens and ~5.6× cost per task of “medium” — at an identical per-token price.',ov:'T01'})}
+${card({c:L(8),tag:'T-02',stat:'+30%',sl:'more tokens for the same text with the Claude 4.7+ tokenizer',title:'Price per token isn’t comparable.',body:'Tokenizers, languages (1.2–7× tax), media, caching, batch, residency and speed tiers all reshape the effective rate.',ov:'T02'})}
+${card({c:L(10),tag:'T-03',stat:'$0.21–$15.25',sl:'per M output tokens on the same H100, depending only on load',title:'On-prem is a utilisation problem.',body:'Architecture and engine features set the ceiling. Self-host only for sustained, predictable, high-volume or regulated load.',ov:'T03'})}
+</div>`);
+
+add('equation','K-01 · The core equation',A, () => {
+  const t = (k,l,s,c) => `<button class="term" style="--c:${c}" data-ov="eq-${k}"><span class="t">${l}</span><span class="s">${s} ↗</span></button>`;
+  const op = s => `<span class="op" aria-hidden="true">${s}</span>`;
+  return `<div class="head"><div><p class="kicker">The unit of account</p><h1 class="title">Cost per successful task</h1><p class="sub">Every layer of the stack moves a different term. Select a term to see who controls it.</p></div></div>
+  <div class="eq">${t('calls','Σ model calls','call count',L(3))}${op('(')}${t('pin','uncached input × p_in','input volume',L(1))}${op('+')}${t('write','cache writes × p_write','cache design',L(5))}${op('+')}${t('read','cache reads × p_read','0.1× or less',L(8))}
+  ${op('+')}${t('out','output + reasoning × p_out','priced 5× input',L(9))}${op(')')}${op('+')}${t('tools','tool & server fees','per-use fees',L(6))}${op('+')}${t('guard','guardrail & eval calls','10–30% overhead','var(--lx)')}</div>
+  <div class="fraction"></div>
+  <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:24px;align-items:center">
+    <div class="eq" style="flex:1;justify-content:center">${t('success','÷  task success rate','the denominator everyone forgets',A)}</div>
+    <div class="selfhost" style="--c:var(--l10)"><div class="acc" style="font-size:14px;font-weight:700">Self-hosted</div>p-terms become hourly cost ÷<br>(tokens/h × utilisation)</div>
+  </div>`;
+});
+
+add('findings','Key findings',A, () => `<div class="head"><div><p class="kicker">K-02 to K-04</p><h1 class="title wide">Three structural facts behind every bill</h1></div></div>
+<div class="g c3">
+${card({c:L(9),tag:'K-02',title:'Output tokens are structurally more expensive',body:'Prefill is compute-bound and parallel. Decode is memory-bandwidth-bound: one token per forward pass. Reasoning is billed as output.',go:'layer-9',
+  html:`<div style="margin-top:26px">${[['Sonnet 5.5',2,10],['Opus 5.5',4,20],['Fable 5.1',10,50]].map(([n,i,o])=>`<div class="hbar" style="--lw:110px"><span class="lbl">${n}</span><span><span class="track"><span class="fill" style="width:calc((100% - 110px) * ${i/50});height:16px;opacity:.35"></span></span><span class="track" style="margin-top:4px"><span class="fill" style="width:calc((100% - 110px) * ${o/50});height:16px"></span><span class="val">$${i}/$${o}</span></span></span></div>`).join('')}<p class="small mono">faint = input · solid = output · $ per MTok</p></div>`})}
+${card({c:L(3),tag:'K-03',title:'Token consumption is a model property',body:'Models differ by 10× or more in how many tokens they emit for the same benchmark (Artificial Analysis Intelligence Index).',go:'effort-explorer',
+  html:`<div style="margin-top:26px">${hbar('Terra · medium',14,200,'14M',{lw:'130px'})}${hbar('Terra · max',99,200,'99M',{lw:'130px'})}${hbar('Carbon · high',200,200,'200M',{lw:'130px'})}<p class="small mono">output tokens on the index · cost/task $0.17 → $0.96 → $7.76</p></div>`})}
+${card({c:L(2),tag:'K-04',title:'Capability gets cheaper; spend per task often doesn’t',body:'Cheaper tokens get spent on agents, reasoning and longer contexts — Jevons dynamics at the task level.',go:'layer-2',
+  html:`<div style="margin-top:22px"><div class="stat" style="color:color-mix(in oklab,var(--l9) var(--mix),var(--text))">−47%</div><p class="stat-label">per quarter: cost of a fixed capability level (≈13× / year, Epoch AI)</p><div class="stat" style="color:color-mix(in oklab,var(--l13) var(--mix),var(--text))">3–18×</div><p class="stat-label">per year: price of running frontier models is rising (“The Price of Progress”)</p></div>`})}
+</div><p class="small" style="margin-top:16px">Select a card to jump to the layer it comes from.</p>`);
+
+add('stack-map','Stack map',A, () => `<div class="head"><div><p class="kicker">Front end → metal</p><h1 class="title">Pick a layer.</h1></div><p class="sub" style="max-width:46ch">Each band is one layer. Select one to dive in — every slide has a Stack map button to bring you back.</p></div>
+<div class="hub"><div>
+  <div class="edge">↑ Front end · where demand is born</div>
+  <div class="bands">${[['Where token demand is born','30 turns → 435K tokens'],['Interaction pattern, pricing, Jevons','280× cheaper, more spend'],['Steps, fan-out, retries','agents 4× · multi 15×'],['Context rot, compaction, RAG','18/18 models degrade'],['System prompts, tools, few-shot','77K → 8.7K tokens'],['Tool output, round trips','150K → 2K (−98.7%)'],['Cascades, providers, cache affinity','~100× model tiers'],['Caching, batch, tiers, residency','cache reads 0.025–0.1×'],['MoE, KV cache, tokenizers, effort','14M vs 99M tokens'],['PagedAttention, prefix caching, SLOs','16× swing by SLO'],['HBM, interconnect, rental prices','GB200 ~15× vs H200'],['Power, PUE, idle share','0.24 Wh / prompt'],['Utilisation, staff, compliance','$0.21–$15.25 / MTok']].map(([d,s],i)=>`<button class="band" style="--c:${L(i+1)};--i:${i}" data-go="layer-${i+1}"><span class="n">${String(i+1).padStart(2,'0')}</span><span class="nm">${LAYERS[i]}</span><span class="d">${d}</span><span class="s">${s}</span></button>`).join('')}</div>
+  <div class="edge">↓ Metal · where the price is set</div>
+</div><div>
+  <p class="mono" style="font-weight:700;color:var(--muted);margin:0 0 14px">Beyond the layers</p>
+  <div class="jumps">${[['Core equation','equation',A],['Cross-cutting risks','cross-cutting','var(--lx)'],['Observability & KPIs','observability',L(9)],['Layer → levers table','summary',L(6)],['Recommendations','recommendations',A],['Caveats & sources','caveats','var(--dim)']].map(([n,g,c])=>`<button class="btn" style="--c:${c}" data-go="${g}">${n}<span aria-hidden="true">→</span></button>`).join('')}</div>
+  <div class="hr"></div>
+  <p style="font-family:var(--f-head);font-weight:600;font-size:20px;margin:0 0 14px">Interactive explorers</p>
+  <div style="display:flex;flex-wrap:wrap;gap:12px"><button class="btn outline" style="--c:${L(9)}" data-go="effort-explorer">⚙ Reasoning effort</button><button class="btn outline" style="--c:${L(10)}" data-go="utilisation-explorer">▤ GPU utilisation</button></div>
+</div></div>`);
+
+add('layer-1','Layer 01 · Front end / UX',L(1), () => `${lhead(1,'The UI decides how often the model is called — and how much history rides along.')}
+<div class="g main-side">
+${card({c:L(1),tag:'L1-01 · Stateless re-sending of history',title:'Turn n pays for turns 1…n−1 again',html:`<p class="muted" style="margin:0 0 20px">A 30-turn session with 1,000-token turns</p>
+  <div class="split" style="--cols:minmax(0,1.3fr) minmax(0,1fr);align-items:end"><div class="bars30" aria-hidden="true">${Array.from({length:30},(_,i)=>`<i style="height:${(i+1)/30*100}%;opacity:${.3+.7*(i+1)/30}"></i>`).join('')}</div>
+  <div><div class="stat">435K</div><p class="stat-label" style="margin-bottom:6px">tokens processed in total</p><div class="mono" style="font-size:26px;font-weight:700">vs 30K new</div></div></div>
+  <p class="small mono" style="margin-top:12px">bright cap = new tokens per turn · bar = re-sent history</p>`})}
+<div class="g c2">
+${card({c:L(1),tag:'L1-02',title:'Regenerate / edit / branch',ts:1,body:'Each regenerate is a full new call; editing early invalidates every cached prefix after it. Track regenerate rate as a cost KPI.',bs:1})}
+${card({c:L(1),tag:'L1-03',title:'Streaming & “stop”',ts:1,body:'Streaming improves perceived latency, not cost. Assume input is billed and generated output at least partly — set max_tokens conservatively.',bs:1})}
+${card({c:L(1),tag:'L1-04',title:'Autocomplete & smart replies',ts:1,body:'Highest call-count feature. Tiny model, 300–500 ms debounce, field-only context, aggressive caching.',bs:1})}
+${card({c:L(1),tag:'L1-10/11',title:'Verbosity & memory',ts:1,body:'Rich markdown and chatty personas inflate the 5× output tokens. “Remember me” is permanent per-call overhead.',bs:1})}
+</div></div>
+${levers(L(1),['downscale images','text-first PDFs','debounce','session nudges','max_tokens','per-feature model'],`<button class="btn solid sm" style="margin-left:auto" data-ov="L1-media">▶ Media token calculator</button>`)}`);
+
+add('layer-2','Layer 02 · Application & business model',L(2), () => `${lhead(2,'Open-ended chat is the most expensive interaction pattern per unit of value.')}
+<div class="g c3">
+${card({c:L(2),tag:'L2-01 · Multi-turn vs single-turn',title:'Design the call, not the chat',html:`<div class="g c2" style="margin:18px 0 14px;grid-template-columns:1fr 1fr"><div><div class="ui-mini">${[140,110,170,90,150,120].map((w,i)=>`<span class="bubble${i%2?' me':''}" style="width:${w/2}%"></span>`).join('')}</div><p class="small mono">Chat: re-sends everything</p></div>
+  <div><div class="ui-mini">${[0,1,2].map(()=>`<span class="fld-l"></span><span class="fld"></span>`).join('')}<span class="btn solid sm" style="margin-top:auto;pointer-events:none">Run once</span></div><p class="small mono acc">Form: one shot</p></div></div>
+  <p class="s" style="color:var(--muted);margin:0">Single-shot calls with explicit state avoid history re-sends entirely.</p>`})}
+${card({c:L(2),tag:'L2-02 · Unit economics',stat:'5–15×',sl:'per-task cost multiplier from reasoning and agentic features',title:'Flat-rate plans meet heavy-tail users',body:'Subscriptions expose the vendor; usage pricing exposes the user. Subscription products typically need:',html:`<div style="margin-top:14px">${blist(['per-user caps','model downgrades past thresholds','metered “premium” actions'],L(2))}</div>`})}
+${card({c:L(2),tag:'L2-03 · Jevons paradox',title:'Cheaper tokens, bigger bills',html:`<div style="display:flex;align-items:baseline;gap:18px;flex-wrap:wrap"><span class="stat" style="color:var(--muted)">$20.00</span><span class="mono muted" style="font-size:28px">→</span><span class="stat">$0.07</span></div>
+  <p class="stat-label">per M tokens, GPT-3.5-equivalent, late 2022 → late 2024 (Stanford AI Index): 280× drop</p>
+  <div class="jv" aria-hidden="true">${[0,1,2,3,4].map(i=>`<div><i style="height:${150-i*34}px;background:var(--muted);opacity:.5"></i><i style="height:${30+i*30}px;background:var(--c)"></i></div>`).join('')}</div>
+  <p class="small mono">grey = price per capability · colour = product spend (illustrative)</p>
+  <p style="margin:14px 0 0;color:var(--text)">Budget for task-volume growth, not just price decline. Capability prices fall ≈13× / year (Epoch).</p>`})}
+</div>`);
+
+add('layer-3','Layer 03 · Orchestration / agent loop',L(3), () => `${lhead(3,'Agents multiply tokens. Make sure the task is worth it.')}
+<div class="g main-side">
+${card({c:L(3),tag:'L3-01 · The agent multiplier (Anthropic research, June 2025)',title:'Tokens relative to a chat interaction',html:`<div style="margin-top:14px">${hbar('Chat',1,15,'1×',{op:.45})}${hbar('Single agent',4,15,'4×',{op:.7})}${hbar('Multi-agent',15,15,'15×')}</div><div class="hr"></div>
+  <div class="g c2"><div><div class="stat">80%</div><p class="stat-label">of performance variance explained by token usage alone</p></div><div><div class="stat">+90.2%</div><p class="stat-label">multi-agent (Opus 4 lead, Sonnet 4 subagents) vs single-agent Opus 4</p></div></div>`})}
+<div class="stack"><div class="g c2">
+${card({c:L(3),tag:'L3-02',title:'Loops grow superlinearly',ts:1,body:'Every tool call re-reads the whole accumulated context. Step k pays for steps 1…k−1 — and context rot lowers success as it grows.',bs:1})}
+${card({c:L(3),tag:'L3-03',stat:'+225%',ss:1,sl:'tokens on incorrect vs correct answers (o1-like models)',title:'Wrong answers cost more',ts:1})}
+</div>
+${card({c:L(3),tag:'Fit test',title:'Multi-agent pays for breadth, not depth',body:'Good fit: breadth-first, parallelisable, high-value research. Poor fit: tightly interdependent work like coding. Have subagents write artifacts to a filesystem instead of a token-heavy “game of telephone”.',ov:'L3-success',cta:'Success-rate math ↗'})}
+</div></div>
+${levers(L(3),['cap steps & tool calls','orchestrator-worker only for breadth','artifacts on disk','cheap verifiers first','early exit'])}`);
+
+add('layer-4','Layer 04 · Context & memory',L(4), () => {
+  const curves=[[.95,.9,.82,.7,.58,.47],[.92,.85,.74,.6,.46,.35],[.9,.8,.66,.5,.38,.27]];
+  const pts=c=>c.map((v,i)=>`${40+i*130},${230-v*210}`).join(' ');
+  return `${lhead(4,'Stuffing context costs money twice: once in tokens, again in failed tasks.')}
+<div class="g main-side">
+${card({c:L(4),tag:'L4-01 · Context rot (Chroma, 2025)',title:'All 18 frontier models degrade as input grows',html:`<svg viewBox="0 0 720 260" role="img" aria-label="Illustrative chart: accuracy falls as input length grows" style="margin:10px 0">
+  <line x1="30" y1="240" x2="710" y2="240" stroke="var(--line)"/><line x1="30" y1="0" x2="30" y2="240" stroke="var(--line)"/>
+  ${curves.map((c,ci)=>`<polyline fill="none" stroke="var(--l4)" stroke-width="3" opacity="${1-ci*.3}" points="${pts(c)}"/>${c.map((v,i)=>`<circle cx="${40+i*130}" cy="${230-v*210}" r="6" fill="var(--l4)" opacity="${1-ci*.3}"/>`).join('')}`).join('')}
+  <text x="34" y="14" fill="var(--dim)" font-family="JetBrains Mono" font-size="13">accuracy</text><text x="590" y="258" fill="var(--dim)" font-family="JetBrains Mono" font-size="13">input length →</text></svg>
+  <p class="s" style="color:var(--muted);margin:0">Illustrative shape. Degradation is faster when the needle is less similar to the question and worsens with distractors. A 2026 follow-up saw monitor recall drop with transcript length for Opus 4.6, GPT 5.4 and Gemini 3.1 Pro.</p>`})}
+<div class="stack">
+${card({c:L(4),tag:'L4-02',title:'Compaction & summarisation',ts:1,body:'One summarisation call buys smaller contexts on every later call. Pays off in long sessions; risk is losing details → more retries.',bs:1})}
+${card({c:L(4),tag:'L4-03',title:'Subagent context isolation',ts:1,body:'Fresh, narrow contexts return condensed results. More total tokens, but shorter, less rot-prone calls — the mechanism behind 15× and +90.2%.',bs:1})}
+${card({c:L(4),tag:'L4-04',title:'RAG design',ts:1,body:'Chunk size × top-k × reranking sets retrieved tokens. Smaller reranked hybrid top-k cuts tokens and raises accuracy. Stable docs first → cacheable.',bs:1})}
+</div></div>
+${levers(L(4),['retrieval budgets','reranking','dedupe','summarise tool outputs','just-in-time retrieval','stable prefix first'])}`;});
+
+add('layer-5','Layer 05 · Prompt layer',L(5), () => {
+  const on = state.L5==='search';
+  const main = on ? card({c:L(5),tag:'L5-02 · On-demand tool loading (Nov 2025)',title:'defer_loading: true — the model searches for the tools it needs',html:`
+    <p class="mono small" style="font-weight:700;margin:18px 0 8px">Before</p><div style="height:52px;border-radius:8px;background:color-mix(in srgb,var(--muted) 35%,transparent);display:flex;align-items:center;padding:0 16px" class="mono">≈77K tokens of tool definitions</div>
+    <p class="mono small acc" style="font-weight:700;margin:16px 0 8px">After</p><div style="display:flex;align-items:center;gap:16px"><span style="height:52px;width:11.3%;min-width:40px;border-radius:8px;background:var(--c)"></span><span class="mono acc" style="font-weight:700;font-size:18px">≈8.7K (−85%)</span></div>
+    <div class="hr"></div><p class="muted" style="margin:0 0 6px">MCP eval accuracy</p>
+    ${[['Opus 4',49,74],['Opus 4.5',79.5,88.1]].map(([n,a,z])=>`<div class="hbar" style="--lw:110px"><span class="lbl">${n}</span><span><span class="track"><span class="fill" style="width:calc((100% - 150px) * ${a/100});height:16px;background:var(--muted);opacity:.5"></span></span><span class="track" style="margin-top:4px"><span class="fill" style="width:calc((100% - 150px) * ${z/100});height:16px"></span><span class="val">${a}% → ${z}%</span></span></span></div>`).join('')}`})
+  : card({c:L(5),tag:'L5-01 · Tool definition bloat',title:'Five MCP servers, 58 tools, before the conversation starts',html:`
+    <div style="display:flex;gap:4px;margin:20px 0 10px;height:72px">${[['GitHub · 35 tools ≈26K',26,L(5)],['Slack · 11 tools ≈21K',21,L(4)],['3 more ≈8K',8,L(6)]].map(([n,v,c])=>`<span style="flex:${v};background:${c};border-radius:8px;color:var(--on-acc);font-family:var(--f-mono);font-weight:700;font-size:14px;padding:14px;overflow:hidden">${n}</span>`).join('')}</div>
+    <p class="mono" style="font-size:17px;margin:0">≈55K tokens of tool definitions · 3 more = Sentry, Grafana, Splunk</p><div class="hr"></div>
+    <div class="g c2"><div><div class="stat">134K</div><p class="stat-label">tokens of tool definitions alone — seen by Anthropic in real setups</p></div><div><div class="stat" style="color:var(--text)">+ hidden</div><p class="stat-label">tool-use system prompt injected whenever tools are provided (model-specific overhead)</p></div></div>`});
+  return `${lhead(5, on?'Load tools on demand: 85% fewer tokens — and better accuracy.':'Tool definitions can eat the context before the user says a word.')}
+  <div style="margin-bottom:20px;--c:${L(5)}">${seg('L5',[['upfront','All tools upfront'],['search','Tool Search on']],state.L5)}</div>
+  <div class="g wide-side anim-fade">${main}<div class="stack">
+  ${card({c:L(5),tag:'L5-03 · Few-shot',title:'Pure overhead — unless cached',ts:1,body:'Tool Use Examples raised parameter accuracy 72% → 90%: a few tokens buy fewer failed calls.',bs:1})}
+  ${card({c:L(5),tag:'L5-04 · Language',title:'Write system prompts in English',ts:1,body:'Avoids the token tax on the largest fixed block, even for non-English users. Claude Code auto-enables Tool Search above 10% of context.',bs:1})}
+  </div></div>${levers(L(5),['prune & version prompts','lazy-load tools','byte-stable prefix','no timestamps at the top'])}`;
+});
+
+add('layer-6','Layer 06 · Tool layer',L(6), () => `${lhead(6,'Keep bulk data in the sandbox. Let the model see five rows, not 10,000.')}
+<div class="g wide-side">
+${card({c:L(6),tag:'L6-02 · Code execution instead of direct tool calls',title:'MCP servers presented as code APIs',html:`
+  <p class="mono small" style="font-weight:700;margin:16px 0 8px">Direct tool calls</p><div style="height:60px;border-radius:10px;background:color-mix(in srgb,var(--muted) 35%,transparent);display:flex;align-items:center;padding:0 18px;font-family:var(--f-mono);font-weight:700;font-size:20px">150,000 tokens</div>
+  <p class="mono small acc" style="font-weight:700;margin:16px 0 8px">Code execution</p><div style="display:flex;align-items:center;gap:18px"><span style="height:60px;width:14px;border-radius:6px;background:var(--c)"></span><span class="mono acc" style="font-weight:700;font-size:24px">2,000 tokens · −98.7%</span></div>
+  <div class="hr"></div><div class="split" style="--cols:200px minmax(0,1fr);align-items:center"><div class="ui-mini" style="height:auto" aria-hidden="true">${[0,1,2,3,4].map(()=>`<div style="display:flex;gap:10px"><span style="width:30%;height:12px;border-radius:3px;background:var(--c);opacity:.8"></span><span style="flex:1;height:12px;border-radius:3px;background:var(--line)"></span></div>`).join('')}</div>
+  <div><p class="muted" style="margin:0 0 10px">In Anthropic’s illustration the agent sees 5 rows instead of 10,000. Cloudflare reached the same conclusion with “Code Mode”.</p><p style="margin:0">Programmatic Tool Calling: 43,588 → 27,297 tokens (−37%) and N−1 fewer inference passes.</p></div></div>`})}
+<div class="stack">
+${card({c:L(6),tag:'L6-01 · Tool output verbosity',stat:'+50K',sl:'tokens: a 2-hour transcript passed from Google Drive into Salesforce flows through the context twice'})}
+${card({c:L(6),tag:'L6-03 · Caveat',title:'98.7% is a best case',ts:1,body:'It comes from a data-shuffling workflow. Code execution adds sandbox infrastructure and security cost, and shifts some tokens into generated code.',bs:1})}
+</div></div>${levers(L(6),['return IDs & summaries','paginate','filter server-side','result size limits','code mode for bulk data'])}`);
+
+add('layer-7','Layer 07 · Gateway / routing',L(7), () => `${lhead(7,'Routing is often the single largest price lever after volume control.')}
+<div class="g main-side">
+${card({c:L(7),tag:'L7-01 · Model cascades',title:'Easy requests go small, escalate on low confidence',html:`
+  <div class="split" style="--cols:minmax(0,1fr) minmax(0,1fr);margin-top:18px;align-items:center">
+   <div style="display:grid;gap:12px"><div class="node" style="--c:var(--muted)"><b>Request</b><span>all traffic</span></div><div class="mono muted" style="text-align:center">↓</div><div class="node"><b>Router</b><span>confidence check</span></div></div>
+   <div style="display:grid;gap:10px">${[['Haiku 5.5','$0.10 in'],['Sonnet 5.5','$2 in'],['Opus 5.5','$4 in'],['Fable 5.1','$10 in']].map(([n,p],i)=>`<div class="node" style="${i===0?'background:color-mix(in srgb,var(--c) 15%,var(--surf2))':''}"><b>${n}</b><span>${p} / MTok</span></div>`).join('')}<span class="small mono">↓ escalate</span></div>
+  </div><div class="hr"></div><div class="stat">≈100×</div><p class="stat-label">price span across model tiers (input)</p>
+  <p style="margin:0">Output is priced 5× input, so sending easy requests to the smallest tier moves the bill more than any discount.</p>`})}
+<div class="stack">
+${card({c:L(7),tag:'L7-02 · Same slug, different provider (OpenRouter, DeepSeek)',title:'$0.44–$1.74 input · 4–57 tok/s · ≈97–100% uptime',ts:1,body:'Quality varies through quantisation, inference backend, tool-call parsers and chat templates. The priciest Llama 3.3 70B endpoint served fp8 while a cheaper one served bf16. FP4 providers read handwriting at ≈91% vs 96–97%.',bs:1,ov:'L7-quality',cta:'Why price ≠ precision ↗'})}
+<div class="g c2">
+${card({c:L(7),tag:'L7-03',title:'Cheaper can cost more',ts:1,body:'A provider that lowers success or breaks tool-call parsing raises cost per successful task.',bs:1})}
+${card({c:L(7),tag:'L7-04',title:'Cache affinity',ts:1,body:'Scattering requests destroys cache locality. Sticky routing via session_id, falling back to prompt_cache_key.',bs:1})}
+</div></div></div>${levers(L(7),['pin tested providers','benchmark per provider','sticky sessions','log quantisation served'])}`);
+
+add('layer-8','Layer 08 · Provider API pricing mechanics',L(8), () => {
+  const lx = v => (Math.log10(v)-Math.log10(0.02))/(Math.log10(6)-Math.log10(0.02))*100;
+  const mk = [[0.025,'cache read · Fable/Mythos 5.1',L(9),-1],[0.05,'cache read · Opus/Sonnet 5.5',L(9),1],[0.1,'cache read · most',L(9),-1],[0.5,'Batch API',L(10),1],[1.1,'US residency',L(12),-1],[1.25,'5-min cache write',L(5),1],[2,'1-h write · fast mode',L(13),-1],[5,'Haiku 5.5 >100K',L(13),1]];
+  return `${lhead(8,'The price sheet is a set of multipliers. Design for the cheap ones.')}
+  ${card({c:L(8),tag:'Effective multiplier on the base token price (Anthropic, Claude 4.6+)',title:'From 0.025× to 5× — same model, same tokens',html:`<div class="scroll-x"><div class="mscale">
+    <div class="line"></div>
+    ${[0.025,0.05,0.1,0.5,1,2,5].map(v=>`<span class="tick" style="left:${lx(v)}%"></span><span class="tl" style="left:${lx(v)}%">${v}×</span>`).join('')}
+    ${mk.map(([v,l,c,s])=>`<span class="stem" style="--c:${c};left:${lx(v)}%;${s<0?'top:80px;height:36px':'top:132px;height:40px'}"></span><span class="mk" style="--c:${c};left:${lx(v)}%"></span><span class="ml" style="--c:${c};left:${lx(v)}%;${s<0?'top:38px':'top:176px'}">${l}</span>`).join('')}
+  </div></div>`})}
+  <div class="g c4" style="margin-top:20px">
+  ${card({c:L(8),tag:'L8-01/03 · Caching',body:'Pays off after 1 read (5-min) or 2 reads (1-h). Model or tool-def changes invalidate the cache → fleet-wide write spike.',bs:1,ov:'L8-cache',cta:'Compare providers ↗'})}
+  ${card({c:L(8),tag:'L8-04/05 · Batch & speed',body:'Batch −50% on input and output, stackable with caching. Fast mode for Opus 5.5: $8/$40 vs $4/$20, not with Batch.',bs:1})}
+  ${card({c:L(8),tag:'L8-06/07 · Tiers & region',body:'Haiku 5.5 steps $0.10/$0.50 → $0.50/$2.50 above 100K — the whole request. inference_geo “us” = 1.1×; regional cloud endpoints +10%.',bs:1})}
+  ${card({c:L(8),tag:'L8-08/09 · Fees & limits',body:'Server tools such as web search carry per-use fees. Throttling causes timeouts and retries, which re-bill input unless cached.',bs:1})}
+  </div>`;
+});
+
+add('layer-9','Layer 09 · Model architecture & reasoning',L(9), () => {
+  const t = state.L9;
+  let title, body;
+  if (t==='arch') { title='Inside the model: what each token physically costs.'; body = `<div class="g main-side">
+    ${card({c:L(9),tag:'L9A-02 · KV cache per token',title:'Smaller KV → more sequences per GPU',html:`<div style="margin-top:14px">${hbar('Multi-head',100,100,'100%',{op:.45,c:'var(--muted)',lw:'150px'})}${hbar('GQA (Llama 3)',8.3,100,'≈8–16× smaller',{lw:'150px'})}${hbar('MLA (DeepSeek)',6.7,100,'−93.3%',{lw:'150px'})}</div><div class="hr"></div>
+     <div class="g c2"><div><div class="stat">5.76×</div><p class="stat-label">max generation throughput, DeepSeek-V2 vs DeepSeek 67B (and 42.5% less training cost)</p></div><div><div class="stat">10K → 30K</div><p class="stat-label">tok/s per GPU with EAGLE speculation on DeepSeek-R1 at 100 tok/s per user (NVIDIA)</p></div></div>`})}
+    <div class="stack">${card({c:L(9),tag:'L9A-01 · Dense vs MoE',title:'236B total / 21B active',ts:1,body:'Decode cost tracks active parameters; memory tracks total. MoE favours rack-scale memory pools.',bs:1})}
+    ${card({c:L(9),tag:'L9A-03/04 · Attention & phases',title:'Prefill vs decode',ts:1,body:'Long inputs are compute-heavy at prefill; long outputs bandwidth-heavy at decode. Sliding-window and SSM/hybrid models cap KV growth, at some recall risk.',bs:1})}
+    ${card({c:L(9),tag:'L9A-05/06 · Size & speculation',title:'Distil, then validate',ts:1,body:'Smaller distilled models cut cost per token ~10×; success on the real task decides. Speculative decoding is free money on owned hardware.',bs:1})}</div></div>
+    ${levers(L(9),['prefer MoE + MLA/GQA','enable speculation','validate distilled models'])}`; }
+  else if (t==='tok') { title='Same text, different token count. Compare per task.'; body = `<div class="g main-side">
+    ${card({c:L(9),tag:'L9B-03 · The non-English “token tax”',title:'Tokens relative to English',html:`<div style="margin-top:14px">${[['English',1,'1.00×','var(--muted)'],['Spanish · o200k',1.24,'1.24× (was 1.48×)'],['Arabic · o200k',1.35,'1.35× (was 3.30×)'],['French regional',3.3,'1.6–3.3×',L(13)],['Ethiopic · Gemma 4',2.47,'2.47×'],['Ethiopic · o200k',7.36,'7.36×',L(13)]].map(([l,v,x,c])=>hbar(l,v,7.5*1.6,x,{lw:'190px',c})).join('')}</div>
+     <p class="s" style="color:var(--muted);margin:14px 0 0">Petrov et al.: 2–15× across languages. 36 of 55 languages need ≥1.5× English on o200k. Single-paragraph tests are directional.</p>`})}
+    <div class="stack">${card({c:L(9),tag:'L9B-02 · Tokenizer changes',stat:'+30%',sl:'tokens for the same text with Claude 4.7+ — a per-token price cut can be a per-task price increase'})}
+    <div class="g c2">${card({c:L(9),tag:'L9B-01 · Vocabulary',title:'Bigger vocab, better compression',ts:1,body:'cl100k → o200k (≈100k → 200k entries) compresses non-English text much better.',bs:1})}
+    ${card({c:L(9),tag:'L9B-04 · Formats',title:'Code, numbers & JSON inflate',ts:1,body:'Minified JSON, compact schemas, CSV or YAML-lite for bulk data. Strict structured outputs cut parse-failure retries.',bs:1})}</div></div></div>
+    ${levers(L(9),['compare per task','English system prompts','compact formats','tokenizer-aware model choice'])}`; }
+  else { title='Reasoning is billed as output — often invisibly.'; body = `<div class="g main-side">
+    ${card({c:L(9),tag:'L9C-04 · Overthinking',title:'“2 + 3 = ?”',html:`<div class="stat" style="font-size:clamp(48px,5vw,72px);color:color-mix(in oklab,var(--l13) var(--mix),var(--text));margin-top:8px">+1,953%</div><p class="stat-label">more tokens from o1-like models than conventional ones on a trivial sum (Chen et al., Dec 2024)</p>
+     ${hbar('R1 per query',2973,3000*1.6,'2,973',{c:'var(--muted)',op:.5,lw:'160px'})}${hbar('batch prompting',689,3000*1.6,'689 (−76.8%)',{lw:'160px'})}
+     <p style="margin:14px 0 0">Adversarial “OverThink” inputs inflated reasoning up to 18× on o1 and >10× on R1 — a cost-attack surface for any agent reading the web.</p>`})}
+    <div class="stack"><div class="g c2">${card({c:L(9),tag:'L9C-01/02 · Billing',title:'Invisible, but billed',ts:1,body:'A request can exhaust max_output_tokens while reasoning and return nothing — still billed. Reserve ≈25K tokens to start (OpenAI).',bs:1})}
+    ${card({c:L(9),tag:'L9C-05 · Agents',title:'Low effort can flail',ts:1,body:'o1 at low effort scored 35% higher on overthinking (2.774 vs 2.426) — acting less, reasoning in circles.',bs:1})}</div>
+    ${card({c:L(9),tag:'L9C-03/06 · Effort & verbosity',title:'Verbosity × price — never compare them separately',ts:1,body:'Opus 5 at max: 140M output tokens ($7,274.74) vs GPT-5.6 Sol at max: 90M ($3,464.84). Price ratio 1.25×, bill ratio 2.1×.',bs:1,ctaGo:'effort-explorer',cta:'Open the effort explorer'})}</div></div>
+    ${levers(L(9),['effort routing','thinking budgets','measure reasoning share','sanitize inputs'])}`; }
+  return `${lhead(9,title)}<div style="margin-bottom:20px;--c:${L(9)}">${seg('L9',[['arch','9A · Architecture'],['tok','9B · Tokenization'],['reason','9C · Reasoning']],t)}</div><div class="anim-fade">${body}</div>`;
+});
+
+add('effort-explorer','Explorer · Reasoning effort',L(9), () => {
+  const max = state.effort==='max';
+  const lv=[['minimal',10],['low',20],['medium',50],['high',80],['xhigh',95]], pos = max?95:50;
+  return `<div class="head"><div><h1 class="title wide">Turn the effort dial. Watch the bill.</h1><p class="sub">Same model, same per-token price: GPT-6.1 Terra on the Artificial Analysis Intelligence Index.</p></div></div>
+  ${panel('effort-explorer — gpt-6.1-terra',`<div class="split" style="--cols:minmax(0,.8fr) minmax(0,1.6fr)">
+    <div><p class="mono muted" style="margin:0 0 10px">reasoning.effort</p>${seg('effort',[['medium','medium'],['max','max']],state.effort)}
+      <p class="small mono" style="margin:26px 0 14px">share of max_tokens reserved for reasoning (OpenRouter mapping)</p>
+      <div style="position:relative;height:60px;margin:0 14px"><div style="position:absolute;left:0;right:0;top:10px;height:8px;border-radius:4px;background:var(--line)"></div><div style="position:absolute;left:0;width:${pos}%;top:10px;height:8px;border-radius:4px;background:var(--c);transition:width .4s"></div>
+        ${lv.map(([n,v])=>`<span style="position:absolute;left:${v}%;top:7px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--dim)"></span><span class="mono small lvl${n==='medium'||n==='xhigh'?' key':''}" style="position:absolute;left:${v}%;top:28px;transform:translateX(-50%);text-align:center;line-height:1.3">${n}<br>${v}%</span>`).join('')}
+        <span style="position:absolute;left:${pos}%;top:0;width:28px;height:28px;margin-left:-14px;border-radius:50%;background:#fff;border:4px solid var(--c);transition:left .4s"></span></div>
+      <div class="insight"><div class="k">Insight · ${max?'max':'medium'}</div><p>${max?'+13 index points cost ≈5.6× more per task and ≈7× the output tokens. Worth it only where the task is hard.':'≈7× fewer output tokens than max, for 13 fewer index points. The right default for routine work.'}</p></div></div>
+    <div><div class="g c3">
+      <div class="metric"><div class="k">Output tokens</div><div class="v acc">${max?'99M':'14M'}</div><div class="d">on the full index run</div></div>
+      <div class="metric"><div class="k">Cost per task</div><div class="v acc">${max?'$0.96':'$0.17'}</div><div class="d">${max?'≈5.6× medium':'baseline'}</div></div>
+      <div class="metric"><div class="k">Index score</div><div class="v">${max?'51':'38'}</div><div class="d">Artificial Analysis Intelligence Index</div></div></div>
+      <p class="small mono" style="margin:28px 0 8px">output tokens</p>
+      <div style="position:relative;height:40px;border-radius:10px;background:var(--surf2)"><div style="height:100%;width:${(max?99:14)/2}%;border-radius:10px;background:var(--c);transition:width .5s"></div><span style="position:absolute;right:0;top:-4px;bottom:-4px;width:2px;background:var(--l13)"></span></div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px" class="small mono"><span>0</span><span>200M = Gemini 4 Carbon (High), $7.76/task</span></div>
+      <p class="muted" style="margin:20px 0 0">Cheapest effort is not automatically cheapest per success: low-effort agents can flail (L9C-05).</p></div>
+  </div>`)}`;
+});
+
+add('layer-10','Layer 10 · Serving engines (self-hosted)',L(10), () => {
+  const X=v=>40+(v-50)/160*640, Y=v=>230-v*210; let pts=[];
+  for(let i=0;i<=24;i++){const t=i/24;pts.push(`${X(74+t*114)},${Y(.055+.843*Math.pow(t,2.2))}`);}
+  return `${lhead(10,'On owned hardware, the engine decides how many tokens a GPU can sell.')}
+  <div class="g main-side">
+  ${card({c:L(10),tag:'L10-06 · Throughput–latency (InferenceMAX, DeepSeek-R1, GB200)',title:'Faster per user = pricier per token',html:`<svg viewBox="0 0 720 270" role="img" aria-label="Cost per million tokens rises from $0.055 at 74 tok/s per user to $0.898 at 188 tok/s per user" style="margin:10px 0">
+    <line x1="30" y1="240" x2="710" y2="240" stroke="var(--line)"/><line x1="30" y1="0" x2="30" y2="240" stroke="var(--line)"/>
+    <polyline fill="none" stroke="var(--l10)" stroke-width="3" points="${pts.join(' ')}"/>
+    <circle cx="${X(74)}" cy="${Y(.055)}" r="10" fill="var(--l10)"/><circle cx="${X(188)}" cy="${Y(.898)}" r="10" fill="var(--l13)"/>
+    <text x="${X(74)+16}" y="${Y(.055)-34}" fill="var(--l10)" font-family="JetBrains Mono" font-size="15" font-weight="700">$0.055 / MTok</text><text x="${X(74)+16}" y="${Y(.055)-14}" fill="var(--muted)" font-family="JetBrains Mono" font-size="14">@ 74 tok/s/user</text>
+    <text x="${X(188)-20}" y="${Y(.898)+6}" text-anchor="end" fill="var(--l13)" font-family="JetBrains Mono" font-size="15" font-weight="700">$0.898 / MTok</text><text x="${X(188)-20}" y="${Y(.898)+26}" text-anchor="end" fill="var(--muted)" font-family="JetBrains Mono" font-size="14">@ 188 tok/s/user</text>
+    <text x="560" y="262" fill="var(--dim)" font-family="JetBrains Mono" font-size="13">tok/s per user →</text><text x="36" y="14" fill="var(--dim)" font-family="JetBrains Mono" font-size="13">$/MTok</text></svg>
+    <div style="display:flex;gap:20px;align-items:center"><span class="stat">16×</span><p style="margin:0">cost swing from the latency SLO alone. Pick the slowest acceptable per-user speed.</p></div>`})}
+  <div class="stack">
+  ${card({c:L(10),tag:'L10-01 · PagedAttention (vLLM)',stat:'60–80% → <4%',ss:1,sl:'KV memory waste. 2–4× throughput at equal latency; up to 24× vs naive HF Transformers.'})}
+  ${card({c:L(10),tag:'L10-02 · Prefix caching (SGLang)',stat:'up to 6.4×',ss:1,sl:'throughput and 3.7× lower latency. Production hit rates 52.4–74.1% — only with a stable shared prefix.'})}
+  ${card({c:L(10),tag:'L10-04/05 · Disaggregation & quants',stat:'FP8 · FP4',ss:1,sl:'halve or quarter weight bandwidth. Disaggregated GB200 beat 8-GPU nodes below ≈90 tok/s/user.'})}
+  </div></div>${levers(L(10),['vLLM / SGLang','prefix caching','FP8/FP4 with evals','relax latency SLOs','pool tenants'],`<button class="btn solid sm" style="margin-left:auto" data-go="utilisation-explorer">Utilisation explorer</button>`)}`;
+});
+
+const UTIL = {
+  idle:{l:'near idle',fill:.08,big:'$15.25',bigSub:'per M output tokens — the top of the measured range',pk:'Penalty vs full load',pen:'up to 36.3×',penSub:'underutilisation penalty (Qwen3-30B-A3B FP8 at 1 req/s)',c:L(13),pos:100,ins:'At 1 req/s, Mixtral 8x7B FP16 cost more per token than Claude Sonnet 4.6’s API. An idle GPU is the most expensive token you can buy.'},
+  ent:{l:'enterprise 1–10 req/s',fill:.45,big:'2.5–24×',bigSub:'cost per token vs the saturated floor at typical enterprise loads',pk:'Real-world utilisation',pen:'40–65%',penSub:'utilisation real teams achieve — vendors assume 80–90%',c:L(11),pos:45,ins:'Most on-prem fleets live here. Multi-tenant pooling of many apps on one cluster is usually the decisive lever.'},
+  sat:{l:'saturated',fill:.95,big:'$0.21',bigSub:'per M output tokens — the bottom of the measured range',pk:'Break-even utilisation',pen:'≈62%',penSub:'sustained utilisation needed to match a $0.20/M hosted price on a ≈$4/h rented H100 (50 tok/s/user)',c:L(10),pos:0,ins:'Raw floor: gpt-oss-120b at ≈8,973 tok/s per H100 and $1.17/h owner TCO ≈ $0.036 per M tokens at 100% load.'}};
+add('utilisation-explorer','Explorer · GPU utilisation',L(10), () => {
+  const u = UTIL[state.util];
+  return `<div class="head"><div><h1 class="title wide">Same H100. Only the load changes.</h1><p class="sub">Chitral Patil, “Beyond Per-Token Pricing” (arXiv:2606.11690, June 2026) — vLLM benchmark runs.</p></div></div>
+  ${panel('h100-cost-simulator — vllm',`<div class="split" style="--cols:minmax(0,.8fr) minmax(0,1.6fr)">
+   <div><p class="mono muted" style="margin:0 0 10px">offered load</p>${seg('util',[['idle','near idle'],['ent','enterprise 1–10 req/s'],['sat','saturated']],state.util)}
+    <p class="small mono" style="margin:26px 0 10px">GPU busy (illustrative)</p>
+    <div class="gauge" aria-hidden="true">${Array.from({length:20},(_,i)=>`<i style="${i<Math.round(u.fill*20)?`background:${u.c};opacity:${.5+.5*i/20}`:''}"></i>`).join('')}</div>
+    <div class="insight" style="--c:${u.c}"><div class="k">Insight</div><p>${u.ins}</p></div></div>
+   <div><div class="g c2">
+     <div class="metric"><div class="k">Cost / M output tokens</div><div class="v" style="color:color-mix(in oklab,${u.c} var(--mix),var(--text))">${u.big}</div><div class="d">${u.bigSub}</div></div>
+     <div class="metric"><div class="k">${u.pk}</div><div class="v">${u.pen}</div><div class="d">${u.penSub}</div></div></div>
+     <p class="small mono" style="margin:28px 0 8px">measured range on identical hardware</p>
+     <div style="position:relative;height:24px;border-radius:12px;background:color-mix(in srgb,var(--c) 15%,var(--surf2));margin:0 16px"><span style="position:absolute;top:-4px;left:${u.pos}%;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:${u.c};border:4px solid var(--surf);transition:left .5s"></span></div>
+     <div style="display:flex;justify-content:space-between;margin-top:12px" class="small mono"><span>$0.21</span><span>$15.25</span></div>
+     <p style="margin:20px 0 0">Utilisation first, hardware second. Self-host only above ≈50–60% sustained utilisation.</p></div>
+  </div>`)}`;
+});
+
+const GPUS = [['NVIDIA','H100 SXM','80 GB','3.35 TB/s',80,3.35,'$3.17 / GPU-hour','Ornn trade index, Oct 23, 2026. SemiAnalysis composite $2.82 (Apr 2026); listed on-demand medians ≈$3.84–$4.20.'],
+  ['NVIDIA','H200','141 GB HBM3e','4.8 TB/s',141,4.8,'$5.74 / GPU-hour','Ornn index, Oct 23, 2026. $1.56 per MTok on DeepSeek-R1 at ≈75 tok/s/user (InferenceMAX).'],
+  ['NVIDIA','B200','~180 GB usable','up to 8 TB/s',180,8,'$9.58 / GPU-hour','Ornn index, Oct 23, 2026. SemiAnalysis: rental up 79% in three months to $8.01 by late Sep 2026.'],
+  ['AMD','MI300X','192 GB HBM3','5.3 TB/s',192,5.3,'192 GB on one GPU','Bigger memory means larger batches, longer contexts and fewer GPUs per model replica.'],
+  ['AMD','MI355X','288 GB HBM3e','8 TB/s',288,8,'$1.50 / chip-hour TCO','Hyperscaler-owner TCO used by InferenceX. Beat GB200 on Kimi K3 2.8T ($0.059 vs $0.092 per MTok).']];
+add('layer-11','Layer 11 · Hardware: down to the metal',L(11), () => `${lhead(11,'Decode is a memory-bandwidth problem.')}
+<p class="mono acc" style="font-weight:700;margin:-8px 0 16px;--c:${L(11)}">L11-01 · HBM capacity & bandwidth — each decoded token re-reads active weights + KV cache. Hover or tap a GPU for its price.</p>
+<div class="g c5">${GPUS.map(([v,n,h,b,hv,bv],i)=>`<div class="card gpu" style="--c:${L(11)}" tabindex="0" data-tip="${i}" aria-describedby="tip">
+  <div style="display:flex;gap:14px;align-items:center"><span class="chipi"><i></i></span><div><div class="mono small" style="font-weight:700">${v}</div><div style="font-family:var(--f-head);font-weight:700;font-size:24px">${n}</div></div></div>
+  <p class="mono small" style="margin:20px 0 0;font-weight:700">HBM</p><div class="meter"><i style="width:${hv/288*100}%;background:var(--c)"></i></div><div class="mono">${h}</div>
+  <p class="mono small" style="margin:16px 0 0;font-weight:700">Bandwidth</p><div class="meter"><i style="width:${bv/8*100}%;background:var(--l12)"></i></div><div class="mono">${b}</div>
+  <p class="mono acc" style="font-size:13px;margin:18px 0 0;font-weight:700">Price ↗</p></div>`).join('')}</div>
+<div class="split" style="--cols:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);margin-top:20px;gap:20px">
+${card({c:L(11),tag:'L11-02 · Interconnect & rack scale',stat:'≈15×',ss:1,sl:'cheaper on DeepSeek-R1: GB200 NVL72 just over $0.10 vs H200 $1.56 per MTok at ≈75 tok/s/user (vendor-reported, SemiAnalysis benchmark). MoE wants 72-GPU NVLink domains.'})}
+${card({c:L(11),tag:'L11-03 · Workload-specific',title:'No universal winner',ts:1,body:'DeepSeek-R1: GB200 $0.055 vs MI355X $0.236. Kimi K3 2.8T: MI355X $0.059 vs GB200 $0.092.',bs:1})}
+${card({c:L(11),tag:'L11-04/06 · Alt chips & amortisation',title:'Short horizons win',ts:1,body:'TPU, Trainium, Groq, Cerebras mostly show up as API tiers. 3–4 year depreciation can lock in uncompetitive unit costs.',bs:1})}
+</div>${levers(L(11),['match hardware to model shape','rack-scale for big MoE','short depreciation horizons'])}`);
+
+add('layer-12','Layer 12 · Datacenter, power & energy',L(12), () => `${lhead(12,'Idle capacity costs energy too — the energy analogue of the utilisation penalty.')}
+<div class="g wide-side">
+${card({c:L(12),tag:'L12-01 · Energy per prompt (Google, Aug 2025 — median Gemini Apps text prompt)',title:'One prompt, fully accounted',html:`<div class="g c3" style="margin:18px 0">${[['0.24 Wh','energy',1],['0.03 g','CO2e'],['0.26 mL','water']].map(([v,l,a])=>`<div><div class="stat" style="${a?'':'color:var(--text)'}">${v}</div><p class="stat-label">${l}</p></div>`).join('')}</div>
+  <p class="mono small" style="font-weight:700">Where the 0.24 Wh goes</p>
+  <div class="stackbar">${[['accelerators',58,L(12)],['CPU / DRAM',25,L(11)],['idle machines',10,L(13)],['DC overhead',8,'var(--lx)']].map(([n,v,c])=>`<i style="flex:${v};background:${c}" title="${n} ${v}%"></i>`).join('')}</div>
+  <div class="stackbar" style="height:auto;margin-top:10px">${[['accelerators',58,L(12)],['CPU / DRAM',25,L(11)],['idle machines',10,L(13)],['DC overhead',8,'var(--lx)']].map(([n,v,c])=>`<span class="mono" style="flex:${v};font-size:13px;color:color-mix(in oklab,${c} var(--mix),var(--text));font-weight:700;min-width:0">${n}<br>${v}%</span>`).join('')}</div>
+  <p style="margin:22px 0 0">Energy fell 33× and carbon 44× in the 12 months to May 2025. Counting only active accelerators gives 0.10 Wh. Reasoning-heavy prompts consume multiples of the median.</p>`})}
+<div class="stack">
+${card({c:L(12),tag:'L12-02 · PUE, density, cooling',title:'Most on-prem rooms can’t host NVL72',ts:1,body:'Planning assumes PUE 1.3–1.5. Rack-scale systems need liquid cooling and very high rack power — without retrofit, on-prem buyers fall back to less efficient air-cooled 8-GPU nodes.',bs:1})}
+${card({c:L(12),tag:'L12-03 · The operator’s KPI',stat:'≈9.8M',sl:'tokens/s per MW — gpt-oss-120B on GB200 NVL72 at 132 tok/s/user (InferenceX). Energy prices matter more on-prem than in hyperscale clouds.'})}
+</div></div>${levers(L(12),['raise utilisation','liquid-cooled density','tokens/MW KPI','ESG per-prompt reporting'])}`);
+
+add('layer-13','Layer 13 · On-prem vs cloud API',L(13), () => `${lhead(13,'Own the base, rent the peak.')}
+${card({c:L(13),tag:'L13-01 · Self-hosted cost per token',html:`<div class="formula">( GPU-hour + power/cooling/space + network/storage + staff/MLOps + licences ) ÷ ( throughput × utilisation )</div>`})}
+<div class="g c3" style="margin-top:20px">
+<div class="col" style="--c:${L(10)}"><div class="tag">L13-06</div><h3>When on-prem wins</h3>${blist(['Sustained, predictable, high volume; pooled utilisation above ≈50–60%','Regulation & sovereignty: GDPR residency, DORA, public-sector classification','Workloads that fit strong open-weight models (check licences)','Heavy shared prefixes — engine prefix caching is a free discount'],L(10))}</div>
+<div class="col" style="--c:${L(7)}"><div class="tag">L13-07</div><h3>When APIs win</h3>${blist(['Spiky or low volume','Frontier-quality requirements','Fast-moving model generations — no lock-in to depreciating hardware','Small teams without MLOps capacity'],L(7))}</div>
+<div class="col" style="--c:${L(13)}"><div class="tag">L13-08 · Hybrid</div><h3>Route by data & difficulty</h3>
+  <div class="node" style="--c:var(--muted)"><b>Gateway</b><span style="color:var(--muted)">routing · budgets · data-classification rules</span></div>
+  <div class="g c2" style="margin-top:12px;gap:12px"><div class="node" style="--c:var(--l10);background:color-mix(in srgb,var(--l10) 10%,var(--surf2))"><b>On-prem base</b><span style="color:var(--muted);font-family:var(--f-body);font-size:14px">sensitive, high-volume, routine: classification, extraction, RAG answering</span></div>
+  <div class="node" style="--c:var(--l7);background:color-mix(in srgb,var(--l7) 10%,var(--surf2))"><b>API peak</b><span style="color:var(--muted);font-family:var(--f-body);font-size:14px">frontier reasoning and agentic work</span></div></div></div>
+</div>${levers(L(13),['pool tenants','hybrid routing','self-host only above ≈50–60%'],`<button class="btn solid sm" style="margin-left:auto" data-ov="L13-data">Data points ↗</button>`)}`);
+
+add('cross-cutting','Cross-cutting & faraway factors','var(--lx)', () => `<div class="head"><h1 class="title wide">The costs that don’t belong to any one layer.</h1></div>
+<div class="g c3">${[['X-01','Sampling','Best-of-n multiplies output by n. Higher temperature → parse failures and retries.',3],['X-02','max_tokens','Too low: empty answers, still billed. Too high: runaway reasoning. Calibrate at p95 + headroom.',9],['X-03','Upgrades & drift','New versions change verbosity, tool calls and tokenizer (+30%) and invalidate caches. Re-baseline.',5],['X-04','Guardrails','Classifiers, PII scrubbers, LLM-as-judge: often 10–30% overhead. Use small models.',2],['X-05','Timeouts','Client timeouts shorter than reasoning time = billed-but-discarded work. Use async modes.',7],['X-06','Security','OverThink content inflates reasoning 10–18×. Enforce per-task token budgets as a circuit breaker.',13],['X-07','Carbon','0.24 Wh median per prompt will enter ESG reporting; reasoning and multi-agent scale it.',12],['X-08','Geopolitics','Export controls and HBM supply drive volatility — B200 rent +79% in a quarter.',11],['X-09','Price vs bill','Epoch’s 13×/year decline is for fixed capability. Your bill tracks what you choose to buy.',10]].map(([t,ti,b,c])=>card({c:L(c),tag:t,title:ti,ts:1,body:b,bs:1})).join('')}</div>`);
+
+add('observability','Observability, measurement & governance',L(9), () => `<div class="head"><div><h1 class="title wide">Meter at the right granularity.</h1><p class="sub">What a tokenomics dashboard should show — sample data, illustrative values.</p></div></div>
+<div class="panel"><div class="bar"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i><span style="margin-left:10px">tokenomics-console — feature: research-agent</span></div>
+<div class="dash"><nav aria-label="Dashboard sections (sample)">${['Overview','Features','Agents','Providers','Budgets','Evals'].map((n,i)=>`<span class="${i?'':'on'}">${n}</span>`).join('')}</nav>
+<div style="padding:22px;min-width:0">
+ <div class="kpis">${[['Cost / successful task','$0.42','primary KPI · O-02',9],['Cache hit rate','71%','secondary',8],['Reasoning share','38%','of output',3],['Tool-def share','12%','of input',5],['Steps / task','9.4','cap: 25',7],['Regenerate rate','4.1%','cost + quality signal',1]].map(([k,v,d,c])=>`<div class="kpi" style="--c:${L(c)}"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('')}</div>
+ <p class="mono acc" style="font-size:13px;font-weight:700;margin:22px 0 4px">O-01 · Per-call log</p>
+ <div class="scroll-x"><table class="log"><thead><tr>${['task','model · provider','quant','input','cache rd','cache wr','output','reasoning','tools','ms','retry','outcome'].map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
+ ${[['t-4812','Sonnet 5.5 · anthropic','—','3,210','41,800','0','1,904','1,120','$0.00','4,820','0',1],['t-4812','Haiku 5.5 · anthropic','—','820','12,400','0','212','0','$0.01','910','0',1],['t-4813','deepseek · provider-b','fp8','18,900','0','0','3,402','2,950','$0.00','11,240','1',0],['t-4813','deepseek · provider-a','bf16','18,900','0','18,900','2,801','2,410','$0.00','9,880','0',1],['t-4814','Opus 5.5 · anthropic','—','6,450','88,100','0','4,920','3,880','$0.02','21,300','0',1]].map(r=>`<tr>${r.slice(0,11).map((v,i)=>`<td style="${i===2&&v==='fp8'?'color:color-mix(in oklab,var(--l11) var(--mix),var(--text))':''}">${v}</td>`).join('')}<td style="color:color-mix(in oklab,${r[11]?'var(--l10)':'var(--l13)'} var(--mix),var(--text));font-weight:700">${r[11]?'✓ success':'✕ failed'}</td></tr>`).join('')}
+ </tbody></table></div>
+ <div class="g c2" style="margin-top:16px">
+  <div class="insight" style="--c:var(--l13);margin:0"><div class="k">O-03 · Budgets & caps</div><p style="font-size:15px">per-task token ceiling · per-user daily cap · model allowlists · auto downgrade/escalate</p></div>
+  <div class="insight" style="margin:0"><div class="k">O-04 · Evals tied to cost</div><p style="font-size:15px">Every eval run reports accuracy and cost per task together — like Artificial Analysis’s “cost to run the index”.</p></div></div>
+</div></div></div>`);
+
+const SUMMARY = [['01','Front end / UX','History re-send, regenerate, autocomplete, media, verbosity','258 tok/image tile; 32 tok/s audio; 1 h video ≈1.04M','Downscale media, text-first PDFs, debounce, max_tokens','layer-1',1],['02','Application','Interaction pattern, pricing model, Jevons demand','GPT-3.5-level price 280× lower while usage grows','Single-shot workflows, caps, metered premium actions','layer-2',2],['03','Orchestration','Steps, multi-agent fan-out, retries, failure rate','Agents ~4×, multi-agent ~15×; +90.2% quality','Step caps, breadth-only multi-agent, early exit','layer-3',3],['04','Context & memory','Context growth, context rot, RAG volume','Chroma: all 18 models degrade with length','Compaction, subagent isolation, reranked top-k','layer-4',4],['05','Prompt layer','System prompt, tool definitions, few-shot','58 tools ≈55K; Tool Search 77K→8.7K','Lazy tools, byte-stable prefixes, English prompts','layer-5',5],['06','Tools','Tool output size, round trips','Code execution 150K→2K; PTC −37%','Filter in sandbox, paginate, code mode','layer-6',6],['07','Gateway / routing','Model, provider, cache affinity','DeepSeek $0.44–$1.74/M across providers','Cascades, pin & benchmark, sticky sessions','layer-7',7],['08','Provider APIs','Caching, batch, residency, speed, long-context','Read 0.1–0.025×; batch −50%; fast 2×','Cache design, batch async, stay under thresholds','layer-8',8],['9A','Architecture','Active params, KV bytes/token, speculation','MLA −93.3% KV; EAGLE 3× throughput','MoE + MLA/GQA, enable speculation','layer-9:arch',9],['9B','Tokenization','Vocabulary, language, format, version','Claude 4.7+ ≈+30%; language tax 1.2–7×','Compare per task, compact formats','layer-9:tok',9],['9C','Reasoning','Effort, overthinking, retention, verbosity','14M vs 99M tokens; 2+3: +1,953%','Effort routing, thinking budgets','layer-9:reason',9],['10','Serving engines','KV efficiency, batching, prefix reuse, SLO','PagedAttention <4% waste; 16× SLO swing','vLLM/SGLang, prefix caching, relax SLOs','layer-10',10],['11','Hardware','HBM, interconnect, rental, depreciation','GB200 ~15× vs H200; B200 rent +79%','Match shape, rack-scale MoE, short horizons','layer-11',11],['12','Datacenter','Power, PUE, idle share, cooling','0.24 Wh/prompt; idle 10% + overhead 8%','Raise utilisation, tokens/MW KPI','layer-12',12],['13','On-prem vs API','Utilisation, staff, compliance','H100 $0.21–$15.25/M; GPUs ≈35% TCO','Pool tenants, hybrid, ≥50–60% utilisation','layer-13',13],['X','Cross-cutting','Retries, refusals, guardrails, upgrades, attacks','OverThink up to 18× reasoning tokens','Per-task budgets, re-baseline on upgrades','cross-cutting','x']];
+add('summary','Summary · layer → drivers → levers',L(6), () => `<div class="head"><h1 class="title wide">Layer → drivers → evidence → levers</h1><p class="muted" style="margin:0">Select a row to open its layer.</p></div>
+<div class="scroll-x"><table style="min-width:1000px"><thead><tr><th>Layer</th><th>Main drivers</th><th>Representative evidence</th><th>Key levers</th></tr></thead><tbody>
+${SUMMARY.map(([n,l,d,e,lv,go,c])=>`<tr class="link" style="--c:var(--l${c})" data-go="${go}" tabindex="0"><td><span class="mono acc" style="font-weight:700;margin-right:12px">${n}</span><b>${l}</b></td><td class="muted">${d}</td><td class="mono" style="font-size:13px">${e}</td><td class="acc">${lv}</td></tr>`).join('')}
+</tbody></table></div>`);
+
+add('recommendations','Recommendations',A, () => `<div class="head"><h1 class="title wide">Eight moves to make.</h1></div>
+<div class="g c4">${[['R-01','Govern by cost per successful task','Instrument it per feature and per agent before optimising anything. Without the success denominator, savings are often illusory.',A,'observability'],['R-02','Attack volume before rate','Lazy tools → tool-output filtering / code execution → stable prefixes → compaction → effort routing → multi-agent only where ≈15× pays.',L(3),'layer-5'],['R-03','Engineer for caching','Static first, volatile last, no timestamps. prompt_cache_key or sticky sessions. 1-h TTLs only for >5-min gaps. Plan warm-up on upgrades.',L(8),'layer-8'],['R-04','Normalise vendor comparisons','On your corpus, in each vendor’s tokenizer, in your users’ languages, with your media mix. Re-run on every version.',L(9),'layer-9:tok'],['R-05','Route by difficulty','Small or fast models and low effort for routine work; frontier and high effort for hard tasks; batch anything asynchronous.',L(7),'layer-7'],['R-06','Pin & benchmark providers','Don’t trust declared quantisation or price as a quality signal for open-weight endpoints.',L(6),'layer-7'],['R-07','On-prem: size for pooling','MoE + MLA/GQA; vLLM/SGLang with prefix caching, FP8 and speculation; slowest acceptable tok/s; short depreciation; frontier to APIs.',L(10),'layer-13'],['R-08','Install circuit breakers','Per-task token ceilings, step limits, reasoning budgets and anomaly alerts against runaway loops and adversarial overthinking.',L(13),'cross-cutting']].map(([t,ti,b,c,go])=>card({c,tag:t,title:ti,ts:1,body:b,bs:1,ctaGo:go,cta:'Go deeper'})).join('')}</div>`);
+
+add('caveats','Caveats & sources','var(--dim)', () => `<div class="head"><h1 class="title wide">Read the numbers with care.</h1></div>
+<div class="g main-side"><div>${[['C-01','2026 model names and prices are from provider docs and benchmark pages as of Oct–Nov 2026. Verify before budgeting.'],['C-02','Several figures are vendor best cases (98.7%, 85%, 15×, 6.4×); some are second-hand. Expect smaller gains.'],['C-03','Self-hosting break-even estimates conflict by >10×. Load-test your model on your traffic shape.'],['C-04','Neither OpenAI nor Anthropic documents billing for cancelled streams. Treat partial-output billing as likely.'],['C-05','Token-tax magnitudes depend on domain and tokenizer; single-paragraph benchmarks are directional.'],['C-06','EU AI Act, GDPR and DORA were treated qualitatively; real cost depends on interpretation and residency offers.']].map(([t,v])=>`<div class="cav"><b>${t}</b><span>${v}</span></div>`).join('')}</div>
+<div><p class="mono muted" style="font-weight:700;margin:0 0 12px">Sources</p><ul class="sources">${['Anthropic pricing & prompt caching docs','Anthropic: code execution with MCP','Anthropic multi-agent research system','OpenAI reasoning models & prompt caching','Azure OpenAI reasoning & prompt caching','Gemini token counting','OpenRouter: caching, reasoning tokens, Auto Exacto, stream cancellation','LessWrong: not pinning your OpenRouter provider','Artificial Analysis: GPT-6.1 Terra, Gemini 4 Carbon','Epoch AI: The plunging price of thought','Chroma: Context Rot','DeepSeek-V2 paper','The Token Tax (arXiv:2509.05486)','OverThink attacks (arXiv:2502.02542)','vLLM PagedAttention · SGLang paper','SemiAnalysis InferenceMAX · NVIDIA Blackwell results','Ornn GPU price index','Google energy per prompt','Self-hosting break-even & hybrid routing analyses'].map(s=>`<li>${s}</li>`).join('')}</ul></div></div>`);
+
+add('wrap-up','Wrap-up',A, () => `<div style="min-height:calc(100vh - 240px);display:flex;flex-direction:column;justify-content:center">
+<p class="kicker" style="font-size:20px">The one-line version</p>
+<h1 class="close-hero">Count tokens.<br>Divide by success.<br>Then negotiate price.</h1>
+<p class="sub" style="font-size:clamp(19px,1.8vw,26px)">Volume and utilisation move cost 5–100×. List prices move it 2–5×.</p>
+<div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:36px"><button class="btn solid big" data-go="cover">↺ Back to the start</button><button class="btn big" data-go="stack-map">Open the stack map</button></div></div>`);
+
+/* ---------- overlays ---------- */
+const eqLayer = { calls:'layer-3', pin:'layer-1', write:'layer-8', read:'layer-5', out:'layer-9', tools:'layer-6', guard:'cross-cutting', success:'layer-4' };
+const OV = {
+  T01:{c:L(3),tag:'T-01 · Volume beats rate',t:'Tokens the system decides to spend matter more than the price tag',li:['Anthropic’s production data: agents ≈4× the tokens of chat; multi-agent systems ≈15×.','Same model, same per-token price: “max” effort ≈7× output tokens and ≈5.6× cost per task vs “medium”.','Tool definitions, re-sent history and verbose tool outputs often dominate input.','On-demand tool loading cut tokens by 85%; code execution by 98.7% in Anthropic’s example — bigger than any price negotiation.']},
+  T02:{c:L(8),tag:'T-02 · Price per token is not comparable',t:'A cheaper token can be a more expensive task',li:['Tokenizers differ: Claude 4.7+ produces ≈30% more tokens for the same text.','Non-English languages pay a 1.2–7× “token tax”; images, audio and video convert at provider-specific rates.','Cache reads at 0.1× or less, batch −50%, data residency +10%, fast/priority modes 2×.','Long-context tiers step the price (5× on Haiku 5.5 above 100K prompt tokens).']},
+  T03:{c:L(10),tag:'T-03 · Utilisation first, hardware second',t:'Same H100: $0.21 to $15.25 per million output tokens',li:['Chitral Patil, June 2026 (arXiv:2606.11690): cost depends only on offered load on identical hardware.','Architecture (MoE, MLA/GQA, quantisation) and engine features (PagedAttention, prefix caching, speculative decoding, disaggregation) set the ceiling.','Self-host for sustained, predictable, high-volume or regulation-bound workloads.','Route frontier-grade tasks to APIs.']},
+  'eq-calls':{c:L(3),tag:'Σ model calls',t:'Set by the application and orchestration layers',li:['Agents use ≈4× the tokens of chat, multi-agent systems ≈15×.','Every step re-reads the whole accumulated context, so loops grow superlinearly.','Levers: cap steps and tool calls, early exit, cheap verifiers before retries.']},
+  'eq-pin':{c:L(1),tag:'uncached input × p_in',t:'Front end, context and prompt layers set the volume',li:['Stateless chat re-sends history: a 30-turn session re-processes ≈435K tokens vs 30K new.','58 MCP tools ≈ 55K tokens before the conversation even starts.','Levers: compaction, lazy tool loading, reranked top-k retrieval.']},
+  'eq-write':{c:L(5),tag:'cache writes × p_write',t:'Caching costs something up front',li:['Anthropic: 5-minute writes cost 1.25× input; 1-hour writes 2×.','A model upgrade or tool-definition change invalidates the cache → fleet-wide write spike.','Pays off after one read (5-min) or two reads (1-hour).']},
+  'eq-read':{c:L(8),tag:'cache reads × p_read',t:'The biggest discount on the price sheet',li:['Reads at 0.1× on most models, 0.05× on Opus/Sonnet 5.5, 0.025× on Fable/Mythos 5.1.','Only works with a byte-stable prefix: no timestamps or per-user greetings at the top.','Gateways that scatter requests destroy cache locality — use sticky sessions.']},
+  'eq-out':{c:L(9),tag:'output incl. reasoning × p_out',t:'The model and its reasoning behaviour',li:['Output costs 5× input across Anthropic’s lineup (Sonnet 5.5 $2/$10, Opus 5.5 $4/$20).','Reasoning tokens are billed as output, even when hidden.','Decode is memory-bandwidth-bound: one token per forward pass per sequence.']},
+  'eq-tools':{c:L(6),tag:'tool & server fees',t:'Per-use fees on top of tokens',li:['Server-side tools such as web search carry per-use fees.','Verbose tool results are the fastest-growing input in agent loops.','Code execution cut one workflow from 150K to 2K tokens (−98.7%).']},
+  'eq-guard':{c:'var(--lx)',tag:'guardrail & eval calls',t:'Extra model calls you don’t see in the prompt',li:['Guardrail classifiers, PII scrubbers and LLM-as-judge: often 10–30% overhead in regulated deployments.','Refusals waste the input and trigger retries.','Use small models for guardrails.']},
+  'eq-success':{c:A,tag:'÷ task success rate',t:'Every failed run is fully billed',li:['A cheaper model with 60% success can cost more per success than a pricier one with 90%.','o1-like models used 225% more tokens on incorrect answers than correct ones.','Context rot lowers success as context grows — stuffing context costs twice.']},
+  'L1-media':{c:L(1),tag:'L1-05 to L1-12 · Attachments, media & voice',t:'What a file costs before the model thinks',html:`<div>${[['Image · Gemini','258 tokens ≤384 px; else 768×768 tiles at 258 each; low-res 66/frame'],['Image · Claude','≈ (w × h) / 750; >1,568 px long edge downscaled; screenshot ≈1,000–1,600'],['Audio · Gemini','32 tokens / second → 10-min voice call ≈ 19,200 tokens of audio'],['Video · Gemini','263 tokens / second → 1 h ≈ 1,044,000 (default) vs ≈ 352,800 (low)'],['PDF','Rasterised pages can cost several × extracted text — only for layout, charts, handwriting'],['Voice pipeline','STT → LLM → TTS bills at three points, and voice drives more turns']].map(([k,v])=>`<div class="drow"><b>${k}</b><span>${v}</span></div>`).join('')}</div><p class="muted" style="margin:20px 0 0">Sampling one video frame every 5 s cuts visual tokens by 80%. Client-side downscaling is a direct cost lever.</p>`},
+  'L3-success':{c:L(3),tag:'Cost per successful task',t:'Every failed run is fully billed',html:`<div class="g c2">${[['Cheaper model',1.00,60,0],['Pricier model',1.40,90,1]].map(([n,p,r,w])=>`<div class="metric" style="border:2px solid ${w?'var(--c)':'var(--line)'}"><div style="font-family:var(--f-head);font-size:24px;font-weight:600">${n}</div><div class="mono muted" style="margin-top:6px">$${p.toFixed(2)} per run · ${r}% success</div><div class="v ${w?'acc':''}">$${(p/(r/100)).toFixed(2)}</div><div class="d ${w?'acc':''}">per successful task${w?' ✓ cheaper':''}</div></div>`).join('')}</div><p class="muted" style="margin:20px 0 0">Illustrative prices. Cost per success scales with 1 / success-rate — so validate the cheap option on the real task.</p>`},
+  'L7-quality':{c:L(7),tag:'L7-02 · Provider quality',t:'Declared quantisation is a weak quality proxy',li:['LessWrong: the most expensive Llama 3.3 70B endpoint served fp8, a cheaper one bf16. Price does not track precision.','A NeurIPS-track paper’s conclusions were undermined by unpinned provider mixes.','OpenRouter found FP4 providers (e.g. Novita) beating FP8 ones, and now runs recurring GPQA-Diamond and TAU-Bench checks per provider (“Auto Exacto”).','Anecdotally: fp4 providers ≈91% handwriting word accuracy vs 96–97% at full precision.']},
+  'L8-cache':{c:L(8),tag:'L8-01 to L8-03 · Prompt caching compared',t:'Three providers, three caching models',html:`<div class="g c3">${[['Anthropic',['Explicit cache breakpoints','Writes 1.25× (5-min) / 2× (1-h)','Reads 0.1× · 0.05× · 0.025×','Stacks with batch & residency']],['OpenAI',['Automatic ≥1,024 tokens, 128-token steps','Exact-prefix match, routed by prefix hash','prompt_cache_key; keep <≈15 req/min per key','GPT-5.6+: writes 1.25× (per OpenRouter)']],['Gemini',['Implicit caching from 2,048 tokens','Explicit caching with hourly storage fees','Azure OpenAI Provisioned: up to 100% off cached input']]].map(([n,i])=>`<div class="metric"><div style="font-family:var(--f-head);font-size:24px;font-weight:700" class="acc">${n}</div><div style="margin-top:14px">${blist(i,'var(--c)')}</div></div>`).join('')}</div>`},
+  'L13-data':{c:L(13),tag:'L13-02 to L13-05 · Data points',t:'Break-even estimates conflict by more than 10×',html:`<div>${[['Raw floor','gpt-oss-120b ≈8,973 tok/s per H100; at $1.17/h owner TCO ≈ $0.036/MTok at 100% load. Matching $0.20/MTok on a ≈$4/h rented H100 needs ≈62% utilisation at 50 tok/s/user, ~100% at 100.'],['Enterprise TCO','Llama-70B on 8×H100 at 30,576 tok/s: $0.11/MTok on-prem vs $0.89 on Azure. GPUs ≈35% of true TCO; staff often the largest line.'],['Conflicting claims','One guide: a 70B on one H100 at ≈400 tok/s can never beat GPT-5.4-mini’s $1.50 blended (floor ≈$1.76). Others claim break-even at a few M tokens/day.'],['Real competition','Hosted open-weight endpoints serve gpt-oss-120b well under $1/M output tokens — beat those, not frontier list prices.']].map(([k,v])=>`<div class="drow"><b>${k}</b><span>${v}</span></div>`).join('')}</div>`},
+};
+
+
+/* ---------- hover descriptions ---------- */
+const $ = id => document.getElementById(id);
+const idx = id => S.findIndex(s=>s.id===id);
+const LAYER_DESC = ['Where token demand is born: chat history, regenerate, media and verbosity','Interaction pattern and business model; cheaper tokens drive more use','Agent loops, fan-out and retries multiply tokens per task','Context growth, context rot, compaction and retrieval','System prompts and tool definitions sent with every call','How much tool output flows back through the model','Choosing model, provider and cache-friendly routing','How providers price caching, batch, tiers and regions','How model design, tokenizers and reasoning set token cost','Self-hosted serving software and its efficiency features','GPU memory, bandwidth, interconnect and rental prices','Power, cooling and the energy cost per prompt','When owning GPUs beats paying an API, and when it doesn’t'];
+const GO_DESC = { cover:'Back to the title slide', thesis:'Why volume and utilisation matter more than list price', tldr:'The three things to remember', equation:'The core equation: cost per successful task, term by term', findings:'Three structural facts behind every AI bill', 'stack-map':'Overview of all 13 layers, from front end to metal', 'effort-explorer':'Interactive: see how reasoning effort changes tokens and cost per task', 'utilisation-explorer':'Interactive: see how GPU load changes cost per token', 'cross-cutting':'Risks that span every layer: sampling, timeouts, guardrails, security', observability:'What to measure: a sample cost dashboard', summary:'One table with drivers, evidence and levers per layer', recommendations:'Eight concrete moves to cut cost per successful task', caveats:'Limits of the data, plus sources', 'wrap-up':'The one-line takeaway', 'layer-9:arch':'Layer 9A: how model design sets the physical cost of a token', 'layer-9:tok':'Layer 9B: why the same text costs different token counts', 'layer-9:reason':'Layer 9C: hidden reasoning tokens and effort settings' };
+const SEG_HINT = { 'L5:upfront':'Every tool definition is sent with every request', 'L5:search':'Tools are loaded only when the model searches for them', 'L9:arch':'How model design sets the physical cost of a token', 'L9:tok':'Why the same text turns into different token counts', 'L9:reason':'Hidden reasoning tokens, overthinking and effort settings', 'effort:medium':'Moderate reasoning budget, about half of max_tokens', 'effort:max':'Largest reasoning budget: more tokens, higher score', 'util:idle':'About one request per second on the GPU', 'util:ent':'1–10 requests per second, typical for enterprise traffic', 'util:sat':'GPU fully loaded: the cheapest possible token' };
+const EQ_HINT = { calls:'How many model calls one task needs, driven by agents and loops', pin:'Fresh input tokens, billed at the full input price', write:'Input written to the prompt cache, billed at a premium', read:'Input served from cache, at 0.1× the input price or less', out:'Generated tokens including hidden reasoning, about 5× the input price', tools:'Per-use charges for server-side tools such as web search', guard:'Extra calls for safety classifiers, PII scrubbing and LLM judges', success:'Share of tasks that succeed; failed runs are still billed' };
+const OV_HINT = { T01:'Evidence: why token volume outweighs per-token price', T02:'Evidence: why per-token prices can’t be compared directly', T03:'Evidence: why GPU load decides on-prem cost', 'L1-media':'Token cost of images, audio, video, PDFs and voice', 'L3-success':'Worked example: a cheaper model that costs more per success', 'L7-quality':'Why a provider’s price doesn’t tell you its precision', 'L8-cache':'Prompt caching at Anthropic, OpenAI and Gemini side by side', 'L13-data':'Self-hosting cost data points and why they conflict' };
+const LEVER_HINT = {
+ 'downscale images':'Resize images on the client before upload; fewer pixels mean fewer tokens', 'text-first PDFs':'Send extracted text; rasterise pages only for layout, charts or handwriting', 'debounce':'Wait 300–500 ms after typing before calling the model', 'session nudges':'Suggest a fresh session when history gets long', 'max_tokens':'Cap the response length so runaway output can’t inflate the bill', 'per-feature model':'Pick the smallest model that works for each feature',
+ 'cap steps & tool calls':'Set a hard limit on loop iterations per task', 'orchestrator-worker only for breadth':'Use multi-agent setups only for parallel, breadth-first work', 'artifacts on disk':'Subagents write results to files instead of passing them through context', 'cheap verifiers first':'Check results with a small model before retrying with a big one', 'early exit':'Stop the loop as soon as the task is done',
+ 'retrieval budgets':'Cap how many retrieved tokens a call may add', 'reranking':'Re-score retrieved chunks and keep only the best', 'dedupe':'Drop duplicate chunks before they reach the prompt', 'summarise tool outputs':'Condense tool results before they enter the context', 'just-in-time retrieval':'Fetch documents only when a step needs them', 'stable prefix first':'Put unchanging content first so it can be cached',
+ 'prune & version prompts':'Remove unused instructions and track prompt changes', 'lazy-load tools':'Load tool definitions on demand rather than upfront', 'byte-stable prefix':'Keep the prompt start identical byte for byte so caches hit', 'no timestamps at the top':'Dynamic values early in the prompt break caching',
+ 'return IDs & summaries':'Tools return references and short summaries, not full records', 'paginate':'Return results in pages instead of all at once', 'filter server-side':'Filter data in the tool, before it reaches the model', 'result size limits':'Cap how large a tool result may be', 'code mode for bulk data':'Let the model write code that processes data in a sandbox',
+ 'pin tested providers':'Route only to providers you have validated', 'benchmark per provider':'Measure quality per provider; the same model can differ', 'sticky sessions':'Send a conversation to the same backend so its cache is reused', 'log quantisation served':'Record which precision each provider actually served',
+ 'prefer MoE + MLA/GQA':'Choose architectures with fewer active parameters and a small KV cache', 'enable speculation':'Turn on speculative decoding on owned hardware', 'validate distilled models':'Test smaller distilled models on your real task first', 'compare per task':'Compare cost per finished task, not per token', 'English system prompts':'Write the large fixed prompt in English to avoid the token tax', 'compact formats':'Use minified JSON, CSV or compact schemas for bulk data', 'tokenizer-aware model choice':'Factor tokenizer efficiency into model selection', 'effort routing':'Use low reasoning effort for routine work, high only where needed', 'thinking budgets':'Cap the reasoning tokens a request may spend', 'measure reasoning share':'Track how much output is hidden reasoning', 'sanitize inputs':'Strip content designed to make models overthink',
+ 'vLLM / SGLang':'Use a modern open-source serving engine', 'prefix caching':'Reuse the computed prompt start across requests', 'FP8/FP4 with evals':'Serve at lower precision, after checking accuracy', 'relax latency SLOs':'Accept slower per-user speed for much cheaper tokens', 'pool tenants':'Share one GPU cluster across many apps to raise utilisation',
+ 'match hardware to model shape':'Pick GPUs whose memory and interconnect fit the model', 'rack-scale for big MoE':'Large MoE models run best on 72-GPU NVLink racks', 'short depreciation horizons':'Avoid locking in hardware costs for 3–4 years',
+ 'raise utilisation':'Keep GPUs busy; idle machines still draw power', 'liquid-cooled density':'Dense racks need liquid cooling to be efficient', 'tokens/MW KPI':'Track tokens served per megawatt of power', 'ESG per-prompt reporting':'Report energy and carbon per prompt',
+ 'hybrid routing':'Self-host the steady base load, send peaks and frontier work to APIs', 'self-host only above ≈50–60%':'Below this sustained utilisation, APIs are usually cheaper' };
+const KPI_HINT = { 'Cost / successful task':'Total spend divided by tasks that succeeded: the primary KPI', 'Cache hit rate':'Share of input tokens served from the prompt cache', 'Reasoning share':'Share of output tokens spent on hidden reasoning', 'Tool-def share':'Share of input taken up by tool definitions', 'Steps / task':'Average model calls per task, against the configured cap', 'Regenerate rate':'How often users ask for a new answer: a cost and quality signal',
+ 'Output tokens':'Tokens the model generated across the whole benchmark run', 'Cost per task':'Average spend to complete one benchmark task', 'Index score':'Artificial Analysis Intelligence Index: higher is more capable', 'Cost / M output tokens':'What one million generated tokens cost at this load', 'Penalty vs full load':'How much more each token costs than on a fully loaded GPU', 'Real-world utilisation':'How busy GPUs actually are in typical deployments', 'Break-even utilisation':'Load needed to match a hosted API’s price' };
+const TH_HINT = { 'task':'The user task this call belongs to', 'model · provider':'Which model, and which hosting provider served the call', 'quant':'Numeric precision the provider served', 'input':'Uncached input tokens', 'cache rd':'Input tokens read from cache (cheap)', 'cache wr':'Input tokens written to cache (premium)', 'output':'Visible output tokens', 'reasoning':'Hidden reasoning tokens, billed as output', 'tools':'Per-use tool fees for this call', 'ms':'Latency in milliseconds', 'retry':'How many times the call was retried', 'outcome':'Whether this step succeeded', 'Layer':'Where in the stack, from front end to metal', 'Main drivers':'What pushes token volume or price up at this layer', 'Representative evidence':'A measured data point from the research', 'Key levers':'What you can change to reduce cost' };
+const GLOSS = {
+ 'KV cache':'Stored attention keys and values for every token in context; grows with context and fills GPU memory', 'MoE':'Mixture of Experts: only a few expert sub-networks run per token', 'MLA':'Multi-head Latent Attention (DeepSeek): compresses the KV cache by about 93%', 'GQA':'Grouped-Query Attention: heads share keys and values, shrinking the KV cache 8–16×',
+ 'prefill':'Processing the input prompt: parallel and compute-bound', 'decode':'Generating output one token at a time, limited by memory bandwidth', 'PagedAttention':'vLLM technique that stores the KV cache in pages, cutting memory waste below 4%', 'prefix caching':'Reusing the computed state of a shared prompt start across requests',
+ 'speculative decoding':'A small draft model proposes tokens that the large model verifies in one pass', 'EAGLE':'A speculative-decoding method; tripled per-GPU throughput on DeepSeek-R1', 'quantisation':'Storing weights at lower precision to save memory and bandwidth',
+ 'FP8':'8-bit floating point: about half the memory traffic of 16-bit', 'FP4':'4-bit floating point: a quarter of 16-bit memory traffic, with some accuracy risk', 'bf16':'16-bit “brain float”, the full-precision serving baseline',
+ 'HBM':'High Bandwidth Memory stacked beside the GPU; its size and speed limit decoding', 'NVLink':'NVIDIA’s high-speed GPU-to-GPU interconnect', 'NVL72':'A rack of 72 NVLink-connected GPUs acting as one memory pool',
+ 'PUE':'Power Usage Effectiveness: total datacenter power ÷ IT power; 1.3 means 30% overhead', 'TCO':'Total cost of ownership: hardware, power, space, staff and licences', 'SLO':'Service-level objective; here, the per-user output speed you promise',
+ 'RAG':'Retrieval-augmented generation: fetching documents into the prompt', 'MCP':'Model Context Protocol: a standard way to connect tools and data to a model', 'top-k':'How many retrieved chunks are added to the prompt', 'compaction':'Summarising older context so later calls send fewer tokens', 'context rot':'Accuracy drops as context grows, even inside the window',
+ 'tokenizer':'The rules that split text into tokens; they differ per model and version', 'o200k':'OpenAI’s ~200k-entry tokenizer; compresses non-English text better', 'cl100k':'OpenAI’s older ~100k-entry tokenizer', 'token tax':'Extra tokens non-English text needs for the same content',
+ 'Batch API':'Asynchronous API mode at 50% off, with results within hours', 'max_output_tokens':'Upper limit on generated tokens, including reasoning', 'prompt_cache_key':'OpenAI parameter that routes similar requests to the same cache', 'session_id':'Identifier for sticky routing, so a conversation keeps hitting the same cache',
+ 'Tool Search':'Anthropic feature that loads tool definitions only when the model searches for them', 'defer_loading':'Flag that keeps a tool definition out of the prompt until needed', 'Programmatic Tool Calling':'The model writes code that calls tools, so intermediate results skip the context', 'Code Mode':'Cloudflare’s approach: tools exposed as a code API instead of direct calls',
+ 'Jevons':'Jevons paradox: when a resource gets cheaper, total use rises', 'Intelligence Index':'Artificial Analysis’s composite benchmark score', 'InferenceMAX':'SemiAnalysis benchmark of real serving cost across hardware and software', 'InferenceX':'SemiAnalysis benchmark of real serving cost across hardware and software',
+ 'vLLM':'Widely used open-source LLM serving engine', 'SGLang':'Open-source serving engine with strong prefix caching', 'disaggregation':'Running prefill and decode on separate GPU pools', 'MLOps':'The engineering work of deploying, monitoring and updating models',
+ 'DORA':'EU Digital Operational Resilience Act for financial firms', 'GDPR':'EU General Data Protection Regulation', 'LLM-as-judge':'Using a model to grade another model’s output: an extra call', 'Best-of-n':'Generating n answers and keeping the best: n× the output cost',
+ 'OverThink':'An attack that plants content to make reasoning models think far longer', 'tok/s':'Tokens per second', 'MTok':'One million tokens, the usual pricing unit', 'distilled':'A smaller model trained to imitate a larger one', 'SSM':'State-space model: memory doesn’t grow with context length', 'Sliding-window':'Attention limited to recent tokens, capping KV-cache growth',
+ 'GPU-hour':'One GPU rented for one hour', 'subagent':'A helper agent with its own fresh, narrow context', 'cascade':'Try a cheap model first and escalate when confidence is low', 'TTL':'Time-to-live: how long a cache entry stays valid', 'p95':'95th percentile: 95% of requests fall below this value', 'Ornn':'A trading index for GPU rental prices', 'PII':'Personally identifiable information', 'heavy-tail':'A few users who consume far more than average', 'Opus':'Anthropic’s large Claude model tier', 'Haiku':'Anthropic’s smallest, fastest Claude model tier', 'Sonnet':'Anthropic’s mid-size Claude model tier' };
+const GKEYS = Object.keys(GLOSS).sort((a,b)=>b.length-a.length);
+const GRE = new RegExp('(?<![\\w-])(' + GKEYS.map(k=>k.replace(/[.*+?^${}()|[\]\\\/]/g,'\\$&')).join('|') + ')(s)?(?![\\w-])','gi');
+const glossLookup = t => GKEYS.find(k => k.toLowerCase() === t.toLowerCase());
+function glossify(root) {
+  const seen = new Set(), nodes = [];
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement.closest('button,a,svg,.chip,[data-hint],[data-go],[data-ov],[data-set],.gloss,h1,h2,th,.kpi,.metric .k,.mono,.formula,.stat,.v,.close-hero') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  while (w.nextNode()) nodes.push(w.currentNode);
+  for (const n of nodes) {
+    const txt = n.nodeValue; GRE.lastIndex = 0; let m, last = 0, frag = null;
+    while ((m = GRE.exec(txt))) {
+      const key = glossLookup(m[1]); if (!key || seen.has(key)) continue;
+      seen.add(key); frag = frag || document.createDocumentFragment();
+      frag.append(txt.slice(last, m.index));
+      const sp = document.createElement('span'); sp.className = 'gloss'; sp.tabIndex = 0; sp.dataset.g = key; sp.textContent = m[0];
+      frag.append(sp); last = m.index + m[0].length;
+    }
+    if (frag) { frag.append(txt.slice(last)); n.replaceWith(frag); }
+  }
+}
+const HINT_SEL = '.gloss,[data-hint],[data-set],.chip,[data-ov],[data-go],#prevBtn,#nextBtn,#hubBtn,#aboutBtn,#restartBtn,.kpi,th,.metric';
+function hintFor(el) {
+  if (el.classList.contains('gloss')) return [el.dataset.g, GLOSS[el.dataset.g]];
+  if (el.dataset.hint) return [null, el.dataset.hint];
+  if (el.dataset.set) return [el.textContent.trim(), SEG_HINT[el.dataset.set]];
+  if (el.classList.contains('chip')) return ['Lever', LEVER_HINT[el.textContent.trim()] || 'A way to reduce cost at this layer'];
+  if (el.dataset.ov) { const k = el.dataset.ov; if (k.startsWith('eq-')) return [OV[k].tag, EQ_HINT[k.slice(3)] + '. Click for who controls it.']; return ['Opens details', OV_HINT[k] || OV[k]?.t]; }
+  if (el.id==='restartBtn') return [null, 'Start over: back to the title slide, with all toggles reset'];
+  if (el.id==='aboutBtn') return [null, 'About this slide: what it covers and how to use it (I key)'];
+  if (el.id==='prevBtn') return [null, 'Previous slide (← key)'];
+  if (el.id==='nextBtn') return [null, 'Next slide (→ key)'];
+  if (el.id==='hubBtn') return [null, 'Open the stack map: all 13 layers at a glance (M key)'];
+  if (el.dataset.go) { const g = el.dataset.go; const m = g.match(/^layer-(\d+)$/); if (m) return [`Layer ${m[1]} · ${LAYERS[m[1]-1]}`, LAYER_DESC[m[1]-1]]; return ['Go to', GO_DESC[g] || S[idx(g)]?.section]; }
+  if (el.classList.contains('kpi') || el.classList.contains('metric')) { const k = el.querySelector('.k')?.textContent.trim(); return [k, KPI_HINT[k]]; }
+  if (el.tagName === 'TH') return [el.textContent.trim(), TH_HINT[el.textContent.trim()]];
+  return [null, null];
+}
+const hintEl = document.getElementById('hint'); let hintFor_ = null, hintT = null;
+function showHint(el) {
+  const [k, d] = hintFor(el); if (!d) return hideHint();
+  hintFor_ = el;
+  const c = getComputedStyle(el).getPropertyValue('--c').trim() || 'var(--amber)';
+  hintEl.style.setProperty('--c', c);
+  hintEl.innerHTML = (k ? `<b>${k}</b>` : '') + d;
+  hintEl.hidden = false;
+  const r = el.getBoundingClientRect(), tw = hintEl.offsetWidth, th = hintEl.offsetHeight;
+  let left = Math.min(Math.max(10, r.left + r.width/2 - tw/2), innerWidth - tw - 10);
+  let top = r.bottom + 10; if (top + th > innerHeight - 10) top = Math.max(10, r.top - th - 10);
+  hintEl.style.left = left + 'px'; hintEl.style.top = top + 'px';
+}
+function hideHint() { clearTimeout(hintT); hintEl.hidden = true; hintFor_ = null; }
+const canHover = matchMedia('(hover:hover)');
+document.addEventListener('pointerover', e => {
+  if (e.pointerType !== 'mouse' || !$('scrim').hidden && !e.target.closest('#modal')) return;
+  const el = e.target.closest(HINT_SEL); if (!el || el === hintFor_ || el.closest('[data-tip]')) return;
+  clearTimeout(hintT); hintT = setTimeout(() => showHint(el), 220);
+});
+document.addEventListener('pointerout', e => { const el = e.target.closest(HINT_SEL); if (el && !el.contains(e.relatedTarget)) hideHint(); });
+document.addEventListener('focusin', e => { const el = e.target.closest && e.target.closest(HINT_SEL); if (el && e.target.matches(':focus-visible')) showHint(el); });
+document.addEventListener('focusout', hideHint);
+document.addEventListener('click', e => { const g = e.target.closest('.gloss,.chip'); if (g && !canHover.matches) { hintFor_ === g ? hideHint() : showHint(g); } else if (!g) hideHint(); }, true);
+
+/* ---------- about this slide ---------- */
+const ABOUT = {
+ 'cover':['The title slide of a briefing on AI tokenomics: what really drives the cost of running AI, from the user interface down to the GPUs and power behind it.','Start the briefing, jump to the stack map, or select any of the 13 layers in the stack on the right.'],
+ 'thesis':['The core argument. For the same task, cost swings 5–100× with token volume and up to 36× with GPU load, while vendor list prices differ only 2–5×. So the real savings lie in how many tokens you use and how busy your hardware is.','Select a bar to open the layer that causes that swing.'],
+ 'tldr':['The three takeaways if you remember nothing else: token volume matters more than price per token, per-token prices can’t be compared across models, and self-hosting is mainly a question of GPU utilisation.','Open Deep dive on any card to see the evidence behind it.'],
+ 'equation':['The unit of account for everything that follows: cost per successful task. The bill splits into input, cache, output and tool terms, divided by how often the task succeeds. Each term is moved by a different layer of the stack.','Select a term to learn what it means and which layer controls it, then jump straight to that layer.'],
+ 'findings':['Three structural facts behind every AI bill: output tokens cost about 5× more than input, how many tokens a model spends is a property of the model itself, and falling prices tend to increase total spending.','Select a card to jump to the layer it comes from.'],
+ 'stack-map':['The hub of the briefing. The stack runs from the front end, where token demand is created, down to the metal, where the price per token is set.','Select a layer band to dive in, or use the shortcuts on the right for the equation, risks, dashboard, summary and the two interactive explorers.'],
+ 'layer-1':['Layer 1 covers the user interface. Every chat turn re-sends the whole history, so a 30-turn chat processes about 435K tokens for 30K of new text. Regenerate buttons, autocomplete, attachments and verbose answers all add calls or tokens.','Open the media token calculator to see what images, audio, video and PDFs cost in tokens.'],
+ 'layer-2':['Layer 2 covers product design and business model. Open-ended chat is the most expensive interaction pattern, flat-rate plans are exposed to heavy users, and cheaper tokens usually lead to more usage rather than smaller bills.','Hover the underlined terms for short definitions.'],
+ 'layer-3':['Layer 3 covers agents. Agents use about 4× the tokens of a chat, multi-agent systems about 15×. Loops re-read their growing context at every step, and failed attempts are billed in full.','Open the success-rate math to see why a pricier model can be cheaper per successful task.'],
+ 'layer-4':['Layer 4 covers context and memory. Models get less accurate as context grows, so stuffing in more text costs twice: once in tokens and again in failed tasks. Compaction, isolated subagents and tighter retrieval help.','Hover the levers at the bottom to see what each one means in practice.'],
+ 'layer-5':['Layer 5 covers the prompt itself. Tool definitions alone can take 55K–134K tokens before the user types anything. Loading tools on demand cut that by 85% and improved accuracy.','Switch between “All tools upfront” and “Tool Search on” to compare the two setups.'],
+ 'layer-6':['Layer 6 covers tool results. When large tool outputs flow through the model, they are paid for again and again. Letting the model write code that processes data in a sandbox cut one workflow from 150,000 to 2,000 tokens.','Hover the levers to see ways to keep tool output small.'],
+ 'layer-7':['Layer 7 covers routing. Sending easy requests to small models spans about 100× in price, and the same model can differ in price, speed and quality from one provider to another. Routing also decides whether caches get reused.','Open “Why price ≠ precision” to see how provider quality varies.'],
+ 'layer-8':['Layer 8 covers how providers price tokens. Cache reads, batch processing, data residency, fast modes and long-context tiers turn the base price into anything from 0.025× to 5×.','Open “Compare providers” to see how caching works at Anthropic, OpenAI and Gemini.'],
+ 'layer-9':['Layer 9 covers the model itself, in three parts: architecture (what each token physically costs), tokenization (why the same text becomes different token counts) and reasoning (hidden thinking tokens billed as output).','Use the tabs 9A, 9B and 9C to switch between the three parts.'],
+ 'effort-explorer':['An interactive explorer. Same model, same per-token price: switching reasoning effort from medium to max raises output tokens about 7× and cost per task about 5.6×, for a 13-point higher benchmark score.','Switch between medium and max and watch the slider, metrics and token bar change.'],
+ 'layer-10':['Layer 10 covers serving software for self-hosted models. Engine features like PagedAttention and prefix caching decide how many tokens a GPU can deliver, and promising faster responses per user can raise cost per token 16×.','Open the utilisation explorer to see how GPU load changes the price.'],
+ 'utilisation-explorer':['An interactive explorer. On identical H100 GPUs, the cost of a million output tokens ranges from $0.21 to $15.25 depending only on how busy the GPU is. Idle hardware is the most expensive way to buy tokens.','Switch the offered load between near idle, enterprise and saturated.'],
+ 'layer-11':['Layer 11 covers the hardware. Generating text is limited by memory bandwidth, so GPU memory size and speed matter more than raw compute. Rack-scale systems can be about 15× cheaper per token for large models.','Hover or tap a GPU card to see its rental price.'],
+ 'layer-12':['Layer 12 covers datacenter power and energy. A median text prompt uses about 0.24 Wh, and about 10% of that goes to idle machines. Cooling and power density limit which hardware on-prem rooms can host.','Hover the underlined terms such as PUE for short definitions.'],
+ 'layer-13':['Layer 13 weighs self-hosting against cloud APIs. Owning GPUs pays off only with steady, high, pooled utilisation or strict data rules. The usual answer is hybrid: own the base load, rent the peaks.','Open “Data points” to see the cost estimates and why they conflict.'],
+ 'cross-cutting':['Costs that don’t belong to a single layer: sampling settings, output limits, model upgrades, guardrails, timeouts, security attacks, carbon reporting and geopolitics.','Hover the underlined terms for short definitions.'],
+ 'observability':['What to measure to control cost: a sample dashboard showing cost per successful task as the main KPI, a per-call log with tokens, cache use and outcome, and budgets and evaluations tied to cost.','Hover the tiles and column headers to see what each measure means. The values are sample data.'],
+ 'summary':['The whole briefing in one table: for each layer, what drives cost, a representative piece of evidence, and the levers to pull.','Select a row to open that layer.'],
+ 'recommendations':['Eight concrete moves, from measuring cost per successful task to installing circuit breakers against runaway agents.','Use Go deeper on any card to open the slide it draws on.'],
+ 'caveats':['The limits of the data: prices date from autumn 2026, several figures are vendor best cases, and self-hosting estimates disagree by more than 10×. The sources used are listed on the right.','Read this before quoting any number in a budget.'],
+ 'wrap-up':['The one-line version of the briefing: count tokens, divide by success, and only then negotiate price.','Go back to the start, or open the stack map to explore any layer again.']
+};
+function openAbout() {
+  const s = S[cur]; const a = ABOUT[s.id]; if (!a) return;
+  lastFocus = document.activeElement;
+  const m = $('modal');
+  m.classList.add('narrow'); m.style.setProperty('--c', s.c);
+  m.innerHTML = `<button class="close" data-close aria-label="Close">✕</button><div class="tag">About this slide · ${String(cur+1).padStart(2,'0')} / ${S.length}</div><h2 id="mTitle">${s.section}</h2><p class="about-p">${a[0]}</p><div class="insight"><div class="k">How to use it</div><p>${a[1]}</p></div>`;
+  glossify(m); hideHint();
+  $('scrim').hidden = false;
+  m.querySelector('.close').focus();
+}
+
+/* ---------- engine ---------- */
+const stage = $('stage');
+let cur = -1, lastFocus = null;
+
+function render(i, anim) {
+  const s = S[i];
+  document.documentElement.style.setProperty('--c', s.c);
+  stage.innerHTML = `<div class="slide ${anim||''}" style="--c:${s.c}">${s.render()}</div>`;
+  $('section').textContent = s.section;
+  $('pagenum').textContent = `${String(i+1).padStart(2,'0')} / ${S.length}`;
+  $('prog').style.width = `${(i+1)/S.length*100}%`;
+  $('prevBtn').disabled = i===0;
+  $('nextBtn').disabled = i===S.length-1;
+  $('hubBtn').style.visibility = s.id==='stack-map' ? 'hidden' : 'visible';
+  $('restartBtn').style.visibility = i===0 ? 'hidden' : 'visible';
+  document.title = `${s.section} — AI tokenomics`;
+  glossify(stage); hideHint();
+}
+function go(target, animHint) {
+  let id = target, sub = null;
+  if (target.includes(':')) [id, sub] = target.split(':');
+  if (sub && id==='layer-9') state.L9 = sub;
+  const i = idx(id); if (i<0) return;
+  const anim = animHint || (cur<0 ? 'anim-fade' : i>cur ? 'anim-next' : i<cur ? 'anim-prev' : 'anim-fade');
+  const changed = i !== cur;
+  cur = i; render(i, anim);
+  if (changed) { stage.scrollTop = 0; if (location.hash.slice(1) !== id) history.pushState(null,'','#'+id); }
+  stage.focus({preventScroll:true});
+}
+function fromHash() { const id = location.hash.slice(1); const i = idx(id); go(i>=0 ? id : S[0].id); }
+
+/* overlays */
+function openOv(key, opener) {
+  const o = OV[key]; if (!o) return;
+  lastFocus = opener || document.activeElement;
+  const goto = key.startsWith('eq-') ? `<div class="foot"><button class="btn solid" data-go="${eqLayer[key.slice(3)]}" data-close>Go to the layer</button></div>` : '';
+  const m = $('modal');
+  m.style.setProperty('--c', o.c);
+  m.innerHTML = `<button class="close" data-close aria-label="Close">✕</button><div class="tag">${o.tag}</div><h2 id="mTitle">${o.t}</h2>${o.html || `<ul>${o.li.map(x=>`<li>${x}</li>`).join('')}</ul>`}${goto}`;
+  glossify(m); hideHint();
+  $('scrim').hidden = false;
+  m.querySelector('.close').focus();
+}
+function closeOv() { if ($('scrim').hidden) return; $('scrim').hidden = true; $('modal').classList.remove('narrow'); if (lastFocus && document.contains(lastFocus)) lastFocus.focus(); }
+
+/* gpu tooltips */
+const tip = $('tip');
+function showTip(el) {
+  const g = GPUS[+el.dataset.tip];
+  tip.style.setProperty('--c','var(--l11)');
+  tip.innerHTML = `<div class="tag">${g[0]} ${g[1]}</div><h4>${g[6]}</h4><p>${g[7]}</p>`;
+  tip.hidden = false;
+  const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = Math.min(Math.max(12, r.left + r.width/2 - tw/2), innerWidth - tw - 12);
+  let top = r.bottom + 12; if (top + th > innerHeight - 12) top = Math.max(12, r.top - th - 12);
+  tip.style.left = left+'px'; tip.style.top = top+'px';
+}
+const hideTip = () => { tip.hidden = true; };
+
+/* events */
+document.addEventListener('click', e => {
+  const close = e.target.closest('[data-close]');
+  const g = e.target.closest('[data-go]');
+  if (close) { closeOv(); if (g) go(g.dataset.go); return; }
+  if (e.target === $('scrim')) { closeOv(); return; }
+  const ov = e.target.closest('[data-ov]'); if (ov) { e.stopPropagation(); openOv(ov.dataset.ov, ov); return; }
+  const set = e.target.closest('[data-set]');
+  if (set) { const [k,v] = set.dataset.set.split(':'); if (state[k]!==v) { state[k]=v; render(cur,''); const b = stage.querySelector(`[data-set="${k}:${v}"]`); b && b.focus(); } return; }
+  if (g) { go(g.dataset.go); return; }
+  const t = e.target.closest('[data-tip]'); if (t) { tip.hidden ? showTip(t) : hideTip(); }
+});
+document.addEventListener('keydown', e => {
+  if (!$('scrim').hidden) {
+    if (e.key==='Escape') closeOv();
+    if (e.key==='Tab') { const f=[...$('modal').querySelectorAll('button')]; if(!f.length) return; const a=f[0], z=f[f.length-1]; if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus();} else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus();} }
+    return;
+  }
+  const tag = (e.target.tagName||'').toLowerCase();
+  if ((e.key==='Enter'||e.key===' ') && e.target.matches('[data-go][role="button"],tr[data-go]')) { e.preventDefault(); go(e.target.dataset.go); return; }
+  if (e.key==='Enter' && e.target.matches('[data-tip]')) { showTip(e.target); return; }
+  if (tag==='button' && (e.key===' '||e.key==='Enter')) return;
+  if (['ArrowRight','PageDown'].includes(e.key) || (e.key===' ' && tag!=='button')) { e.preventDefault(); if (cur<S.length-1) go(S[cur+1].id); }
+  else if (['ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); if (cur>0) go(S[cur-1].id); }
+  else if (e.key==='Home') go(S[0].id);
+  else if (e.key==='End') go(S[S.length-1].id);
+  else if (e.key==='m' || e.key==='M') go('stack-map','anim-up');
+  else if (e.key==='i' || e.key==='I') openAbout();
+  else if (e.key==='Escape') hideTip();
+});
+document.addEventListener('mouseover', e => { const t = e.target.closest('[data-tip]'); if (t && matchMedia('(hover:hover)').matches) showTip(t); });
+document.addEventListener('mouseout', e => { const t = e.target.closest('[data-tip]'); if (t && !t.contains(e.relatedTarget)) hideTip(); });
+document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('[data-tip]')) showTip(e.target); });
+document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('[data-tip]')) hideTip(); });
+stage.addEventListener('scroll', () => { hideTip(); hideHint(); }, {passive:true});
+let tx=null, ty=null;
+stage.addEventListener('touchstart', e => { tx=e.touches[0].clientX; ty=e.touches[0].clientY; }, {passive:true});
+stage.addEventListener('touchend', e => { if (tx===null) return; const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty; tx=null;
+  if (Math.abs(dx)>80 && Math.abs(dx)>Math.abs(dy)*1.5 && !e.target.closest('.scroll-x')) { if (dx<0 && cur<S.length-1) go(S[cur+1].id); else if (dx>0 && cur>0) go(S[cur-1].id); } }, {passive:true});
+$('prevBtn').onclick = () => cur>0 && go(S[cur-1].id);
+$('nextBtn').onclick = () => cur<S.length-1 && go(S[cur+1].id);
+$('hubBtn').onclick = () => go('stack-map','anim-up');
+$('aboutBtn').onclick = openAbout;
+$('restartBtn').onclick = () => { Object.assign(state, { L5:'upfront', L9:'arch', effort:'medium', util:'idle' }); go('cover'); };
+window.addEventListener('hashchange', fromHash);
+window.addEventListener('popstate', fromHash);
+window.addEventListener('resize', hideTip);
+
+
+fromHash();
+})();
+</script>
+</body>
+</html>
