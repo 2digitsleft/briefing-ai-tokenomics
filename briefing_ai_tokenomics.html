@@ -932,7 +932,26 @@ function render(i, anim) {
   $('restartBtn').style.visibility = i===0 ? 'hidden' : 'visible';
   document.title = `${s.section} — AI tokenomics`;
   glossify(stage); hideHint();
+  fitSlide();
 }
+/* auto-fit: scale the slide so it fits between top bar and navigation */
+const FIT_MIN = 0.55, FIT_MIN_WIDTH = 900;
+function fitSlide() {
+  const sl = stage.querySelector('.slide'); if (!sl) return;
+  sl.style.zoom = '';
+  if (innerWidth < FIT_MIN_WIDTH) return;            // phones & small tablets keep scrolling
+  const avail = stage.clientHeight - 4;
+  let z = 1;
+  for (let k = 0; k < 6; k++) {                       // zoom changes line wrapping, so iterate
+    const h = sl.getBoundingClientRect().height;
+    if (h <= avail) break;
+    z = Math.max(FIT_MIN, z * (avail / h) * 0.99);
+    sl.style.zoom = z;
+    if (z === FIT_MIN) break;
+  }
+}
+let fitRaf = 0;
+const refit = () => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(fitSlide); };
 function go(target, animHint) {
   let id = target, sub = null;
   if (target.includes(':')) [id, sub] = target.split(':');
@@ -1021,6 +1040,8 @@ $('restartBtn').onclick = () => { Object.assign(state, { L5:'upfront', L9:'arch'
 window.addEventListener('hashchange', fromHash);
 window.addEventListener('popstate', fromHash);
 window.addEventListener('resize', hideTip);
+window.addEventListener('resize', refit);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
 
 
 fromHash();
